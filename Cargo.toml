@@ -1,7 +1,11 @@
 [package]
 name = "starknet-rs-jsonrpc-codegen"
 version = "0.1.0"
+authors = ["Jonathan LEI <me@xjonathan.dev>"]
 edition = "2021"
+description = """
+Tool for generating the StarkNet JSON-RPC code used in starknet-rs
+"""
 
 [dependencies]
 serde = { version = "1.0.149", features = ["derive"] }
