@@ -956,29 +956,32 @@
         }
       },
       "BLOCK_HEADER": {
-        "block_hash": {
-          "$ref": "#/components/schemas/BLOCK_HASH"
-        },
-        "parent_hash": {
-          "description": "The hash of this block's parent",
-          "$ref": "#/components/schemas/BLOCK_HASH"
-        },
-        "block_number": {
-          "description": "The block number (its height)",
-          "$ref": "#/components/schemas/BLOCK_NUMBER"
-        },
-        "new_root": {
-          "description": "The new global state root",
-          "$ref": "#/components/schemas/FELT"
-        },
-        "timestamp": {
-          "description": "The time in which the block was created, encoded in Unix time",
-          "type": "integer",
-          "minimum": 0
-        },
-        "sequencer_address": {
-          "description": "The StarkNet identity of the sequencer submitting this block",
-          "$ref": "#/components/schemas/FELT"
+        "type": "object",
+        "properties": {
+          "block_hash": {
+            "$ref": "#/components/schemas/BLOCK_HASH"
+          },
+          "parent_hash": {
+            "description": "The hash of this block's parent",
+            "$ref": "#/components/schemas/BLOCK_HASH"
+          },
+          "block_number": {
+            "description": "The block number (its height)",
+            "$ref": "#/components/schemas/BLOCK_NUMBER"
+          },
+          "new_root": {
+            "description": "The new global state root",
+            "$ref": "#/components/schemas/FELT"
+          },
+          "timestamp": {
+            "description": "The time in which the block was created, encoded in Unix time",
+            "type": "integer",
+            "minimum": 0
+          },
+          "sequencer_address": {
+            "description": "The StarkNet identity of the sequencer submitting this block",
+            "$ref": "#/components/schemas/FELT"
+          }
         }
       },
       "BLOCK_WITH_TX_HASHES": {
@@ -1004,8 +1007,11 @@
         "title": "The block object",
         "allOf": [
           {
-            "status": {
-              "$ref": "#/components/schemas/BLOCK_STATUS"
+            "type": "object",
+            "properties": {
+              "status": {
+                "$ref": "#/components/schemas/BLOCK_STATUS"
+              }
             }
           },
           {
@@ -1124,7 +1130,7 @@
             "$ref": "#/components/schemas/DEPLOY_TXN"
           },
           {
-            "ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN"
+            "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN"
           }
         ]
       },
@@ -1224,9 +1230,7 @@
             "properties": {
               "contract_class": {
                 "description": "The class to be declared",
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_CLASS"
-                }
+                "$ref": "#/components/schemas/CONTRACT_CLASS"
               },
               "sender_address": {
                 "description": "The address of the account contract sending the declaration transaction",
@@ -1310,9 +1314,7 @@
             "properties": {
               "contract_class": {
                 "description": "The class of the contract that will be deployed",
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_CLASS"
-                }
+                "$ref": "#/components/schemas/CONTRACT_CLASS"
               }
             }
           },
@@ -1663,26 +1665,18 @@
             "type": "object",
             "properties": {
               "CONSTRUCTOR": {
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-                }
+                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
               },
               "EXTERNAL": {
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-                }
+                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
               },
               "L1_HANDLER": {
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-                }
+                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
               }
             }
           },
           "abi": {
-            "schema": {
-              "$ref": "#/components/schemas/CONTRACT_ABI"
-            }
+            "$ref": "#/components/schemas/CONTRACT_ABI"
           }
         },
         "required": ["program", "entry_points_by_type"]
@@ -1698,15 +1692,11 @@
         "properties": {
           "offset": {
             "description": "The offset of the entry point in the program",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "selector": {
             "description": "A unique identifier of the entry point (function) in the program",
-            "schema": {
-              "$ref": "#/components/schemas/FELT"
-            }
+            "$ref": "#/components/schemas/FELT"
           }
         }
       },
@@ -1717,7 +1707,6 @@
         }
       },
       "CONTRACT_ABI_ENTRY": {
-        "type": "object",
         "oneOf": [
           {
             "$ref": "#/components/schemas/FUNCTION_ABI_ENTRY"
@@ -1743,11 +1732,10 @@
         "enum": ["function", "l1_handler", "constructor"]
       },
       "STRUCT_ABI_ENTRY": {
+        "type": "object",
         "properties": {
           "type": {
-            "schema": {
-              "$ref": "#/components/schemas/STRUCT_ABI_TYPE"
-            }
+            "$ref": "#/components/schemas/STRUCT_ABI_TYPE"
           },
           "name": {
             "description": "The struct name",
@@ -1766,7 +1754,6 @@
         }
       },
       "STRUCT_MEMBER": {
-        "type": "object",
         "allOf": [
           {
             "$ref": "#/components/schemas/TYPED_PARAMETER"
@@ -1786,9 +1773,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "schema": {
-              "$ref": "#/components/schemas/EVENT_ABI_TYPE"
-            }
+            "$ref": "#/components/schemas/EVENT_ABI_TYPE"
           },
           "name": {
             "description": "The event name",
@@ -1812,9 +1797,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "schema": {
-              "$ref": "#/components/schemas/FUNCTION_ABI_TYPE"
-            }
+            "$ref": "#/components/schemas/FUNCTION_ABI_TYPE"
           },
           "name": {
             "description": "The function name",
@@ -1852,21 +1835,15 @@
         "properties": {
           "gas_consumed": {
             "description": "The Ethereum gas cost of the transaction (see https://docs.starknet.io/docs/Fees/fee-mechanism for more info)",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "gas_price": {
             "description": "The gas price (in gwei) that was used in the cost estimation",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "overall_fee": {
             "description": "The estimated fee for the transaction (in gwei), product of gas_consumed and gas_price",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           }
         }
       }
