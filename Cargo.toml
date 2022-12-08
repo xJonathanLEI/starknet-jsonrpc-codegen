@@ -8,6 +8,7 @@ Tool for generating the StarkNet JSON-RPC code used in starknet-rs
 """
 
 [dependencies]
+anyhow = "1.0.66"
 indexmap = { version = "1.9.2", features = ["serde"] }
 serde = { version = "1.0.149", features = ["derive"] }
 serde_json = "1.0.89"

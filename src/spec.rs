@@ -224,3 +224,12 @@ impl Primitive {
         }
     }
 }
+
+impl Reference {
+    pub fn name(&self) -> &str {
+        match self.ref_field.rfind('/') {
+            Some(ind_slash) => &self.ref_field[ind_slash + 1..],
+            None => &self.ref_field,
+        }
+    }
+}
