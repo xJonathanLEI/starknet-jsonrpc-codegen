@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-
+use indexmap::IndexMap;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -36,8 +35,8 @@ pub struct Method {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Components {
     pub content_descriptors: Empty,
-    pub schemas: BTreeMap<String, Schema>,
-    pub errors: BTreeMap<String, ErrorType>,
+    pub schemas: IndexMap<String, Schema>,
+    pub errors: IndexMap<String, ErrorType>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -136,7 +135,7 @@ pub struct ObjectPrimitive {
     pub title: Option<String>,
     pub description: Option<String>,
     pub summary: Option<String>,
-    pub properties: BTreeMap<String, Schema>,
+    pub properties: IndexMap<String, Schema>,
     pub required: Option<Vec<String>>,
 }
 
