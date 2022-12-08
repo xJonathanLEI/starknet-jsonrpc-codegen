@@ -6,6 +6,70 @@ const MAX_LINE_LENGTH: usize = 100;
 
 const STARKNET_API_OPENRPC: &str = include_str!("./specs/starknet_api_openrpc.json");
 
+struct RustType {
+    title: Option<String>,
+    description: Option<String>,
+    name: String,
+}
+
+impl RustType {
+    pub fn render_stdout(&self, trailing_line: bool) {
+        match (self.title.as_ref(), self.description.as_ref()) {
+            (Some(title), Some(description)) => {
+                Self::print_doc(title, 0);
+                println!("///");
+                Self::print_doc(description, 0);
+            }
+            (Some(title), None) => {
+                Self::print_doc(title, 0);
+            }
+            (None, Some(description)) => {
+                Self::print_doc(description, 0);
+            }
+            (None, None) => {}
+        }
+
+        println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+        println!("pub struct {} {{", self.name);
+        println!("}}");
+
+        if trailing_line {
+            println!();
+        }
+    }
+
+    fn print_doc(doc: &str, indent_spaces: usize) {
+        let prefix = format!("{}/// ", " ".repeat(indent_spaces));
+        for line in Self::wrap_lines(doc, prefix.len()) {
+            println!("{}{}", prefix, line);
+        }
+    }
+
+    fn wrap_lines(doc: &str, prefix_length: usize) -> Vec<String> {
+        let mut lines = vec![];
+        let mut current_line = String::new();
+
+        for part in doc.split(' ') {
+            let mut addition = String::new();
+            if !current_line.is_empty() {
+                addition.push(' ');
+            }
+            addition.push_str(part);
+
+            if prefix_length + current_line.len() + addition.len() <= MAX_LINE_LENGTH {
+                current_line.push_str(&addition);
+            } else {
+                lines.push(current_line.clone());
+                current_line.clear();
+                current_line.push_str(part);
+            }
+        }
+
+        lines.push(current_line);
+        lines
+    }
+}
+
 fn main() {
     let specs: Specification =
         serde_json::from_str(STARKNET_API_OPENRPC).expect("Failed to parse specification");
@@ -13,7 +77,16 @@ fn main() {
     println!("use serde::{{Deserialize, Serialize}};");
     println!();
 
-    for (ind, (name, entity)) in specs.components.schemas.iter().enumerate() {
+    let types = resolve_types(&specs);
+    for (ind, rust_type) in types.iter().enumerate() {
+        rust_type.render_stdout(ind != types.len() - 1);
+    }
+}
+
+fn resolve_types(specs: &Specification) -> Vec<RustType> {
+    let mut types = vec![];
+
+    for (name, entity) in specs.components.schemas.iter() {
         let name = to_starknet_rs_name(name);
 
         let title = entity.title();
@@ -22,65 +95,14 @@ fn main() {
             None => entity.summary(),
         };
 
-        match (title, description) {
-            (Some(title), Some(description)) => {
-                print_doc(title, 0);
-                println!("///");
-                print_doc(description, 0);
-            }
-            (Some(title), None) => {
-                print_doc(title, 0);
-            }
-            (None, Some(description)) => {
-                print_doc(description, 0);
-            }
-            (None, None) => {}
-        }
-
-        println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
-        println!("pub struct {} {{", name);
-        println!("}}");
-
-        if ind != specs.components.schemas.len() - 1 {
-            println!();
-        }
-    }
-}
-
-fn print_doc(doc: &str, indent_spaces: usize) {
-    let prefix = format!("{}/// ", " ".repeat(indent_spaces));
-    for line in to_doc_lines(doc, prefix.len()) {
-        println!("{}{}", prefix, line);
-    }
-}
-
-fn to_doc_lines(doc: &str, prefix_length: usize) -> Vec<String> {
-    let mut doc = to_starknet_rs_doc(doc.trim());
-    if !doc.ends_with('.') {
-        doc.push('.');
+        types.push(RustType {
+            title: title.map(|value| to_starknet_rs_doc(value)),
+            description: description.map(|value| to_starknet_rs_doc(value)),
+            name,
+        });
     }
 
-    let mut lines = vec![];
-    let mut current_line = String::new();
-
-    for part in doc.split(' ') {
-        let mut addition = String::new();
-        if !current_line.is_empty() {
-            addition.push(' ');
-        }
-        addition.push_str(part);
-
-        if prefix_length + current_line.len() + addition.len() <= MAX_LINE_LENGTH {
-            current_line.push_str(&addition);
-        } else {
-            lines.push(current_line.clone());
-            current_line.clear();
-            current_line.push_str(part);
-        }
-    }
-
-    lines.push(current_line);
-    lines
+    types
 }
 
 fn to_starknet_rs_name(name: &str) -> String {
@@ -88,9 +110,15 @@ fn to_starknet_rs_name(name: &str) -> String {
 }
 
 fn to_starknet_rs_doc(doc: &str) -> String {
-    to_sentence_case(doc)
+    let mut doc = to_sentence_case(doc)
         .replace("starknet", "StarkNet")
-        .replace("Starknet", "StarkNet")
+        .replace("Starknet", "StarkNet");
+
+    if !doc.ends_with('.') {
+        doc.push('.');
+    }
+
+    doc
 }
 
 fn to_pascal_case(name: &str) -> String {
