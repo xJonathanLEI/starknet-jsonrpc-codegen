@@ -850,47 +850,53 @@
           },
           "state_diff": {
             "description": "The change in state applied in this block, given as a mapping of addresses to the new values and/or new contracts",
-            "type": "object",
-            "properties": {
-              "storage_diffs": {
-                "type": "array",
-                "items": {
-                  "description": "The changes in the storage per contract address",
-                  "$ref": "#/components/schemas/CONTRACT_STORAGE_DIFF_ITEM"
-                }
-              },
-              "declared_contract_hashes": {
-                "type": "array",
-                "items": {
-                  "description": "The hash of a new contract declared as part of the new state",
-                  "$ref": "#/components/schemas/FELT"
-                }
-              },
-              "deployed_contracts": {
-                "type": "array",
-                "items": {
-                  "description": "A new contract deployed as part of the new state",
-                  "$ref": "#/components/schemas/DEPLOYED_CONTRACT_ITEM"
-                }
-              },
-              "nonces": {
-                "type": "array",
-                "items": {
-                  "description": "The updated nonce per contract address",
-                  "type": "object",
-                  "properties": {
-                    "contract_address": {
-                      "description": "The address of the contract",
-                      "$ref": "#/components/schemas/ADDRESS"
-                    },
-                    "nonce": {
-                      "description": "The nonce for the given address at the end of the block",
-                      "$ref": "#/components/schemas/FELT"
-                    }
-                  }
-                }
-              }
+            "$ref": "#/components/schemas/STATE_DIFF"
+          }
+        }
+      },
+      "STATE_DIFF": {
+        "type": "object",
+        "properties": {
+          "storage_diffs": {
+            "type": "array",
+            "items": {
+              "description": "The changes in the storage per contract address",
+              "$ref": "#/components/schemas/CONTRACT_STORAGE_DIFF_ITEM"
             }
+          },
+          "declared_contract_hashes": {
+            "type": "array",
+            "items": {
+              "description": "The hash of a new contract declared as part of the new state",
+              "$ref": "#/components/schemas/FELT"
+            }
+          },
+          "deployed_contracts": {
+            "type": "array",
+            "items": {
+              "description": "A new contract deployed as part of the new state",
+              "$ref": "#/components/schemas/DEPLOYED_CONTRACT_ITEM"
+            }
+          },
+          "nonces": {
+            "type": "array",
+            "items": {
+              "description": "The updated nonce per contract address",
+              "$ref": "#/components/schemas/NONCE_UPDATE"
+            }
+          }
+        }
+      },
+      "NONCE_UPDATE": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "description": "The address of the contract",
+            "$ref": "#/components/schemas/ADDRESS"
+          },
+          "nonce": {
+            "description": "The nonce for the given address at the end of the block",
+            "$ref": "#/components/schemas/FELT"
           }
         }
       },
@@ -1098,18 +1104,21 @@
             "description": "The changes in the storage of the contract",
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "key": {
-                  "description": "The key of the changed value",
-                  "$ref": "#/components/schemas/FELT"
-                },
-                "value": {
-                  "description": "The new value applied to the given address",
-                  "$ref": "#/components/schemas/FELT"
-                }
-              }
+              "$ref": "#/components/schemas/STORAGE_ENTRY"
             }
+          }
+        }
+      },
+      "STORAGE_ENTRY": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "description": "The key of the changed value",
+            "$ref": "#/components/schemas/FELT"
+          },
+          "value": {
+            "description": "The new value applied to the given address",
+            "$ref": "#/components/schemas/FELT"
           }
         }
       },
@@ -1662,24 +1671,27 @@
             "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$"
           },
           "entry_points_by_type": {
-            "type": "object",
-            "properties": {
-              "CONSTRUCTOR": {
-                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-              },
-              "EXTERNAL": {
-                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-              },
-              "L1_HANDLER": {
-                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-              }
-            }
+            "$ref": "#/components/schemas/ENTRY_POINTS_BY_TYPE"
           },
           "abi": {
             "$ref": "#/components/schemas/CONTRACT_ABI"
           }
         },
         "required": ["program", "entry_points_by_type"]
+      },
+      "ENTRY_POINTS_BY_TYPE": {
+        "type": "object",
+        "properties": {
+          "CONSTRUCTOR": {
+            "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
+          },
+          "EXTERNAL": {
+            "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
+          },
+          "L1_HANDLER": {
+            "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
+          }
+        }
       },
       "CONTRACT_ENTRY_POINT_LIST": {
         "type": "array",
