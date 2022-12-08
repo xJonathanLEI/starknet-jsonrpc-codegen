@@ -1,5 +1,5 @@
 [package]
-name = "starknet-rs-jsonrpc-codegen"
+name = "starknet-jsonrpc-codegen"
 version = "0.1.0"
 authors = ["Jonathan LEI <me@xjonathan.dev>"]
 edition = "2021"

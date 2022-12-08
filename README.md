@@ -1,4 +1,4 @@
-# `starknet-rs` JSON-RPC Codegen
+# StarkNet JSON-RPC Codegen
 
 Tool for generating the StarkNet JSON-RPC code used in `starknet-rs`. StarkNet specs are shipped with this repo so it should work out of the box.
 

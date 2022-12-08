@@ -64,7 +64,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "starknet-rs-jsonrpc-codegen"
+name = "starknet-jsonrpc-codegen"
 version = "0.1.0"
 dependencies = [
  "serde",
