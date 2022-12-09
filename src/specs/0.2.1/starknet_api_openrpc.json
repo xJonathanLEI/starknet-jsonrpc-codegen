@@ -762,7 +762,8 @@
               "$ref": "#/components/schemas/FELT"
             }
           }
-        }
+        },
+        "required": []
       },
       "BLOCK_ID": {
         "title": "Block hash, number or tag",
