@@ -119,12 +119,14 @@ pub struct ArrayPrimitive {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct BooleanPrimitive {
-    pub description: String,
+    pub title: Option<String>,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct IntegerPrimitive {
+    pub title: Option<String>,
     pub description: Option<String>,
     pub minimum: Option<i32>,
 }
@@ -197,8 +199,8 @@ impl Primitive {
     pub fn title(&self) -> Option<&String> {
         match self {
             Self::Array(schema) => schema.title.as_ref(),
-            Self::Boolean(_) => None,
-            Self::Integer(_) => None,
+            Self::Boolean(schema) => schema.title.as_ref(),
+            Self::Integer(schema) => schema.title.as_ref(),
             Self::Object(schema) => schema.title.as_ref(),
             Self::String(schema) => schema.title.as_ref(),
         }
@@ -207,7 +209,7 @@ impl Primitive {
     pub fn description(&self) -> Option<&String> {
         match self {
             Self::Array(schema) => schema.description.as_ref(),
-            Self::Boolean(schema) => Some(&schema.description),
+            Self::Boolean(schema) => schema.description.as_ref(),
             Self::Integer(schema) => schema.description.as_ref(),
             Self::Object(schema) => schema.description.as_ref(),
             Self::String(schema) => schema.description.as_ref(),
