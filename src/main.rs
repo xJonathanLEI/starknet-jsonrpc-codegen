@@ -39,6 +39,7 @@ struct RustField {
     name: String,
     type_name: String,
     serde_rename: Option<String>,
+    serde_faltten: bool,
     serializer: Option<SerializerOverride>,
 }
 
@@ -112,6 +113,9 @@ impl RustStruct {
             if let Some(serde_rename) = &field.serde_rename {
                 println!("    #[serde(rename = \"{}\")]", serde_rename);
             }
+            if field.serde_faltten {
+                println!("    #[serde(flatten)]");
+            }
             if let Some(serde_as) = &field.serializer {
                 match serde_as {
                     SerializerOverride::Serde(serializer) => {
@@ -176,13 +180,13 @@ fn main() {
     println!("use super::serde_impls::NumAsHex;");
     println!();
 
-    let types = resolve_types(&specs).expect("Failed to resolve types");
+    let types = resolve_types(&specs, true).expect("Failed to resolve types");
     for (ind, rust_type) in types.iter().enumerate() {
         rust_type.render_stdout(ind != types.len() - 1);
     }
 }
 
-fn resolve_types(specs: &Specification) -> Result<Vec<RustType>> {
+fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<RustType>> {
     let mut types = vec![];
 
     for (name, entity) in specs.components.schemas.iter() {
@@ -213,7 +217,7 @@ fn resolve_types(specs: &Specification) -> Result<Vec<RustType>> {
                 }
                 Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
                     let mut fields = vec![];
-                    if flatten_schema_fields(entity, specs, &mut fields).is_err() {
+                    if get_schema_fields(entity, specs, &mut fields, flatten_fields).is_err() {
                         eprintln!("WARNING: unable to generate struct for {name}");
                         continue;
                     }
@@ -253,10 +257,11 @@ fn resolve_types(specs: &Specification) -> Result<Vec<RustType>> {
     Ok(types)
 }
 
-fn flatten_schema_fields(
+fn get_schema_fields(
     schema: &Schema,
     specs: &Specification,
     fields: &mut Vec<RustField>,
+    flatten: bool,
 ) -> Result<()> {
     match schema {
         Schema::Ref(value) => {
@@ -267,12 +272,33 @@ fn flatten_schema_fields(
             };
 
             // Schema redirection
-            flatten_schema_fields(ref_type, specs, fields)?;
+            get_schema_fields(ref_type, specs, fields, flatten)?;
         }
         Schema::AllOf(value) => {
-            // Recursively resolves types
-            for item in value.all_of.iter() {
-                flatten_schema_fields(item, specs, fields)?;
+            if flatten {
+                // Recursively resolves types if flatten is on
+                for item in value.all_of.iter() {
+                    get_schema_fields(item, specs, fields, flatten)?;
+                }
+            } else {
+                for item in value.all_of.iter() {
+                    match item {
+                        Schema::Ref(reference) => {
+                            fields.push(RustField {
+                                description: reference.description.to_owned(),
+                                name: reference.name().to_lowercase(),
+                                type_name: to_starknet_rs_name(reference.name()),
+                                serde_rename: None,
+                                serde_faltten: true,
+                                serializer: None,
+                            });
+                        }
+                        _ => {
+                            // We don't have a choice but to flatten it
+                            get_schema_fields(item, specs, fields, flatten)?;
+                        }
+                    }
+                }
             }
         }
         Schema::Primitive(Primitive::Object(value)) => {
@@ -300,6 +326,7 @@ fn flatten_schema_fields(
                     name: lower_name,
                     type_name: field_type.type_name,
                     serde_rename: rename,
+                    serde_faltten: false,
                     serializer: field_type.serializer,
                 });
             }
