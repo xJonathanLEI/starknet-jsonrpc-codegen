@@ -62,6 +62,12 @@ enum SerializerOverride {
     SerdeAs(String),
 }
 
+#[allow(unused)]
+enum FlattenOption {
+    All,
+    Selected(Vec<String>),
+}
+
 impl RustType {
     pub fn render_stdout(&self, trailing_line: bool) {
         match (self.title.as_ref(), self.description.as_ref()) {
@@ -186,16 +192,16 @@ fn main() {
     println!("use super::serde_impls::NumAsHex;");
     println!();
 
-    let types = resolve_types(&specs, true).expect("Failed to resolve types");
+    let types = resolve_types(&specs, &FlattenOption::All).expect("Failed to resolve types");
     for (ind, rust_type) in types.iter().enumerate() {
         rust_type.render_stdout(ind != types.len() - 1);
     }
 }
 
-fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<RustType>> {
+fn resolve_types(specs: &Specification, flatten_option: &FlattenOption) -> Result<Vec<RustType>> {
     let mut types = vec![];
 
-    let flatten_only_types = get_flatten_only_schemas(specs);
+    let flatten_only_types = get_flatten_only_schemas(specs, flatten_option);
 
     for (name, entity) in specs.components.schemas.iter() {
         let rusty_name = to_starknet_rs_name(name);
@@ -208,8 +214,7 @@ fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<Rust
 
         eprintln!("Processing schema: {}", name);
 
-        // Operating in flatten mode so these types are useless
-        if flatten_fields && flatten_only_types.contains(name) {
+        if flatten_only_types.contains(name) {
             continue;
         }
 
@@ -230,7 +235,7 @@ fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<Rust
                 }
                 Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
                     let mut fields = vec![];
-                    if get_schema_fields(entity, specs, &mut fields, flatten_fields).is_err() {
+                    if get_schema_fields(entity, specs, &mut fields, flatten_option).is_err() {
                         eprintln!("WARNING: unable to generate struct for {name}");
                         continue;
                     }
@@ -271,12 +276,17 @@ fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<Rust
 }
 
 /// Finds the list of schemas that are used and only used for flattening inside objects
-fn get_flatten_only_schemas(specs: &Specification) -> Vec<String> {
+fn get_flatten_only_schemas(specs: &Specification, flatten_option: &FlattenOption) -> Vec<String> {
     let mut flatten_fields = HashSet::<String>::new();
     let mut non_flatten_fields = HashSet::<String>::new();
 
     for (_, schema) in specs.components.schemas.iter() {
-        visit_schema_for_flatten_only(schema, &mut flatten_fields, &mut non_flatten_fields);
+        visit_schema_for_flatten_only(
+            schema,
+            flatten_option,
+            &mut flatten_fields,
+            &mut non_flatten_fields,
+        );
     }
 
     flatten_fields
@@ -293,6 +303,7 @@ fn get_flatten_only_schemas(specs: &Specification) -> Vec<String> {
 
 fn visit_schema_for_flatten_only(
     schema: &Schema,
+    flatten_option: &FlattenOption,
     flatten_fields: &mut HashSet<String>,
     non_flatten_fields: &mut HashSet<String>,
 ) {
@@ -304,7 +315,12 @@ fn visit_schema_for_flatten_only(
                     Schema::Ref(reference) => {
                         non_flatten_fields.insert(reference.name().to_owned());
                     }
-                    _ => visit_schema_for_flatten_only(variant, flatten_fields, non_flatten_fields),
+                    _ => visit_schema_for_flatten_only(
+                        variant,
+                        flatten_option,
+                        flatten_fields,
+                        non_flatten_fields,
+                    ),
                 }
             }
         }
@@ -312,11 +328,31 @@ fn visit_schema_for_flatten_only(
             for fragment in all_of.all_of.iter() {
                 match fragment {
                     Schema::Ref(reference) => {
-                        flatten_fields.insert(reference.name().to_owned());
+                        let should_flatten = match flatten_option {
+                            FlattenOption::All => true,
+                            FlattenOption::Selected(flatten_types) => {
+                                flatten_types.contains(&reference.name().to_owned())
+                            }
+                        };
+
+                        if should_flatten {
+                            flatten_fields.insert(reference.name().to_owned());
+                        } else {
+                            non_flatten_fields.insert(reference.name().to_owned());
+                            visit_schema_for_flatten_only(
+                                fragment,
+                                flatten_option,
+                                flatten_fields,
+                                non_flatten_fields,
+                            );
+                        }
                     }
-                    _ => {
-                        visit_schema_for_flatten_only(fragment, flatten_fields, non_flatten_fields)
-                    }
+                    _ => visit_schema_for_flatten_only(
+                        fragment,
+                        flatten_option,
+                        flatten_fields,
+                        non_flatten_fields,
+                    ),
                 }
             }
         }
@@ -326,9 +362,12 @@ fn visit_schema_for_flatten_only(
                     Schema::Ref(reference) => {
                         non_flatten_fields.insert(reference.name().to_owned());
                     }
-                    _ => {
-                        visit_schema_for_flatten_only(prop_type, flatten_fields, non_flatten_fields)
-                    }
+                    _ => visit_schema_for_flatten_only(
+                        prop_type,
+                        flatten_option,
+                        flatten_fields,
+                        non_flatten_fields,
+                    ),
                 }
             }
         }
@@ -336,7 +375,12 @@ fn visit_schema_for_flatten_only(
             Schema::Ref(reference) => {
                 non_flatten_fields.insert(reference.name().to_owned());
             }
-            _ => visit_schema_for_flatten_only(&array.items, flatten_fields, non_flatten_fields),
+            _ => visit_schema_for_flatten_only(
+                &array.items,
+                flatten_option,
+                flatten_fields,
+                non_flatten_fields,
+            ),
         },
         _ => {}
     }
@@ -346,7 +390,7 @@ fn get_schema_fields(
     schema: &Schema,
     specs: &Specification,
     fields: &mut Vec<RustField>,
-    flatten: bool,
+    flatten_option: &FlattenOption,
 ) -> Result<()> {
     match schema {
         Schema::Ref(value) => {
@@ -357,18 +401,22 @@ fn get_schema_fields(
             };
 
             // Schema redirection
-            get_schema_fields(ref_type, specs, fields, flatten)?;
+            get_schema_fields(ref_type, specs, fields, flatten_option)?;
         }
         Schema::AllOf(value) => {
-            if flatten {
-                // Recursively resolves types if flatten is on
-                for item in value.all_of.iter() {
-                    get_schema_fields(item, specs, fields, flatten)?;
-                }
-            } else {
-                for item in value.all_of.iter() {
-                    match item {
-                        Schema::Ref(reference) => {
+            for item in value.all_of.iter() {
+                match item {
+                    Schema::Ref(reference) => {
+                        let should_flatten = match flatten_option {
+                            FlattenOption::All => true,
+                            FlattenOption::Selected(flatten_types) => {
+                                flatten_types.contains(&reference.name().to_owned())
+                            }
+                        };
+
+                        if should_flatten {
+                            get_schema_fields(item, specs, fields, flatten_option)?;
+                        } else {
                             fields.push(RustField {
                                 description: reference.description.to_owned(),
                                 name: reference.name().to_lowercase(),
@@ -379,10 +427,10 @@ fn get_schema_fields(
                                 serializer: None,
                             });
                         }
-                        _ => {
-                            // We don't have a choice but to flatten it
-                            get_schema_fields(item, specs, fields, flatten)?;
-                        }
+                    }
+                    _ => {
+                        // We don't have a choice but to flatten it
+                        get_schema_fields(item, specs, fields, flatten_option)?;
                     }
                 }
             }
