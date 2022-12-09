@@ -636,7 +636,16 @@ fn wrap_lines(doc: &str, prefix_length: usize) -> Vec<String> {
 }
 
 fn to_starknet_rs_name(name: &str) -> String {
-    to_pascal_case(name).replace("Txn", "Transaction")
+    let name = to_pascal_case(name).replace("Txn", "Transaction");
+
+    // Hard-coded renames
+    match name.as_ref() {
+        "CommonTransactionProperties" => String::from("TransactionMeta"),
+        "CommonReceiptProperties" => String::from("TransactionReceiptMeta"),
+        "InvokeTransactionReceiptProperties" => String::from("InvokeTransactionReceiptData"),
+        "PendingCommonReceiptProperties" => String::from("PendingTransactionReceiptMeta"),
+        _ => name,
+    }
 }
 
 fn to_starknet_rs_doc(doc: &str, force_period: bool) -> String {
