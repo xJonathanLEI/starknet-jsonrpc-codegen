@@ -1,4 +1,5 @@
 use anyhow::Result;
+use regex::Regex;
 
 use crate::spec::*;
 
@@ -406,10 +407,20 @@ fn to_starknet_rs_name(name: &str) -> String {
 }
 
 fn to_starknet_rs_doc(doc: &str, force_period: bool) -> String {
-    let mut doc = to_sentence_case(doc)
-        .replace("starknet", "StarkNet")
-        .replace("Starknet", "StarkNet")
-        .replace("StarkNet.io", "starknet.io");
+    let mut doc = to_sentence_case(doc);
+
+    for (pattern, target) in [
+        (Regex::new(r"(?i)\bstarknet\b").unwrap(), "StarkNet"),
+        (Regex::new(r"(?i)\bstarknet\.io\b").unwrap(), "starknet.io"),
+        (Regex::new(r"\bStarknet\b").unwrap(), "L1"),
+        (Regex::new(r"\bl1\b").unwrap(), "L1"),
+        (Regex::new(r"\bl2\b").unwrap(), "L2"),
+        (Regex::new(r"\bunix\b").unwrap(), "Unix"),
+    ]
+    .into_iter()
+    {
+        doc = pattern.replace_all(&doc, target).into_owned();
+    }
 
     if force_period && !doc.ends_with('.') {
         doc.push('.');
