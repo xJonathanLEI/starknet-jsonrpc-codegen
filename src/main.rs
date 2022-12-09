@@ -335,12 +335,11 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
 
 fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
     Some(match type_name {
-        "ADDRESS" | "STORAGE_KEY" | "TXN_HASH" | "FELT" | "BLOCK_HASH" | "CHAIN_ID" => {
-            RustFieldType {
-                type_name: String::from("FieldElement"),
-                serde_as: Some(String::from("UfeHex")),
-            }
-        }
+        "ADDRESS" | "STORAGE_KEY" | "TXN_HASH" | "FELT" | "BLOCK_HASH" | "CHAIN_ID"
+        | "PROTOCOL_VERSION" => RustFieldType {
+            type_name: String::from("FieldElement"),
+            serde_as: Some(String::from("UfeHex")),
+        },
         "BLOCK_NUMBER" => RustFieldType {
             type_name: String::from("u64"),
             serde_as: None,
