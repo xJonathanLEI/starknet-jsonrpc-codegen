@@ -6,7 +6,7 @@ mod spec;
 
 const MAX_LINE_LENGTH: usize = 100;
 
-const STARKNET_API_OPENRPC: &str = include_str!("./specs/starknet_api_openrpc.json");
+const STARKNET_API_OPENRPC: &str = include_str!("./specs/0.2.1/starknet_api_openrpc.json");
 
 struct RustType {
     title: Option<String>,
