@@ -37,6 +37,7 @@ struct RustWrapper {
 struct RustField {
     description: Option<String>,
     name: String,
+    optional: bool,
     type_name: String,
     serde_rename: Option<String>,
     serde_faltten: bool,
@@ -109,6 +110,9 @@ impl RustStruct {
         for field in self.fields.iter() {
             if let Some(doc) = &field.description {
                 print_doc(doc, 4);
+            }
+            if field.optional {
+                println!("    #[serde(default, skip_serializing_if = \"Option::is_none\")]");
             }
             if let Some(serde_rename) = &field.serde_rename {
                 println!("    #[serde(rename = \"{}\")]", serde_rename);
@@ -287,6 +291,7 @@ fn get_schema_fields(
                             fields.push(RustField {
                                 description: reference.description.to_owned(),
                                 name: reference.name().to_lowercase(),
+                                optional: false,
                                 type_name: to_starknet_rs_name(reference.name()),
                                 serde_rename: None,
                                 serde_faltten: true,
@@ -321,13 +326,38 @@ fn get_schema_fields(
                     Some(name.to_owned())
                 };
 
+                // Optional field transformation
+                let field_optional = match &value.required {
+                    Some(required) => !required.contains(name),
+                    None => false,
+                };
+                let type_name = if field_optional {
+                    format!("Option<{}>", field_type.type_name)
+                } else {
+                    field_type.type_name
+                };
+                let serializer = if field_optional {
+                    match field_type.serializer {
+                        Some(SerializerOverride::Serde(_)) => {
+                            todo!("Optional transformation of #[serde(with)] not implemented")
+                        }
+                        Some(SerializerOverride::SerdeAs(serde_as)) => {
+                            Some(SerializerOverride::SerdeAs(format!("Option<{}>", serde_as)))
+                        }
+                        None => None,
+                    }
+                } else {
+                    field_type.serializer
+                };
+
                 fields.push(RustField {
                     description: doc_string.map(|value| to_starknet_rs_doc(value, false)),
                     name: lower_name,
-                    type_name: field_type.type_name,
+                    optional: field_optional,
+                    type_name,
                     serde_rename: rename,
                     serde_faltten: false,
-                    serializer: field_type.serializer,
+                    serializer,
                 });
             }
         }
