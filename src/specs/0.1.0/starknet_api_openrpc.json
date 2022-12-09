@@ -955,37 +955,43 @@
         }
       },
       "BLOCK_HEADER": {
-        "block_hash": {
-          "$ref": "#/components/schemas/BLOCK_HASH"
-        },
-        "parent_hash": {
-          "description": "The hash of this block's parent",
-          "$ref": "#/components/schemas/BLOCK_HASH"
-        },
-        "block_number": {
-          "description": "The block number (its height)",
-          "$ref": "#/components/schemas/BLOCK_NUMBER"
-        },
-        "new_root": {
-          "description": "The new global state root",
-          "$ref": "#/components/schemas/FELT"
-        },
-        "timestamp": {
-          "description": "The time in which the block was created, encoded in Unix time",
-          "type": "integer",
-          "minimum": 0
-        },
-        "sequencer_address": {
-          "description": "The StarkNet identity of the sequencer submitting this block",
-          "$ref": "#/components/schemas/FELT"
+        "type": "object",
+        "properties": {
+          "block_hash": {
+            "$ref": "#/components/schemas/BLOCK_HASH"
+          },
+          "parent_hash": {
+            "description": "The hash of this block's parent",
+            "$ref": "#/components/schemas/BLOCK_HASH"
+          },
+          "block_number": {
+            "description": "The block number (its height)",
+            "$ref": "#/components/schemas/BLOCK_NUMBER"
+          },
+          "new_root": {
+            "description": "The new global state root",
+            "$ref": "#/components/schemas/FELT"
+          },
+          "timestamp": {
+            "description": "The time in which the block was created, encoded in Unix time",
+            "type": "integer",
+            "minimum": 0
+          },
+          "sequencer_address": {
+            "description": "The StarkNet identity of the sequencer submitting this block",
+            "$ref": "#/components/schemas/FELT"
+          }
         }
       },
       "BLOCK_WITH_TX_HASHES": {
         "title": "The block object",
         "allOf": [
           {
-            "status": {
-              "$ref": "#/components/schemas/BLOCK_STATUS"
+            "type": "object",
+            "properties": {
+              "status": {
+                "$ref": "#/components/schemas/BLOCK_STATUS"
+              }
             }
           },
           {
@@ -1000,8 +1006,11 @@
         "title": "The block object",
         "allOf": [
           {
-            "status": {
-              "$ref": "#/components/schemas/BLOCK_STATUS"
+            "type": "object",
+            "properties": {
+              "status": {
+                "$ref": "#/components/schemas/BLOCK_STATUS"
+              }
             }
           },
           {
@@ -1019,22 +1028,22 @@
             "$ref": "#/components/schemas/BLOCK_BODY_WITH_TX_HASHES"
           },
           {
-            "timestamp": {
-              "description": "The time in which the block was created, encoded in Unix time",
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          {
-            "sequencer_address": {
-              "description": "The StarkNet identity of the sequencer submitting this block",
-              "$ref": "#/components/schemas/FELT"
-            }
-          },
-          {
-            "parent_hash": {
-              "description": "The hash of this block's parent",
-              "$ref": "#/components/schemas/BLOCK_HASH"
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "description": "The time in which the block was created, encoded in Unix time",
+                "type": "integer",
+                "minimum": 0
+              },
+
+              "sequencer_address": {
+                "description": "The StarkNet identity of the sequencer submitting this block",
+                "$ref": "#/components/schemas/FELT"
+              },
+              "parent_hash": {
+                "description": "The hash of this block's parent",
+                "$ref": "#/components/schemas/BLOCK_HASH"
+              }
             }
           }
         ]
@@ -1046,22 +1055,21 @@
             "$ref": "#/components/schemas/BLOCK_BODY_WITH_TXS"
           },
           {
-            "timestamp": {
-              "description": "The time in which the block was created, encoded in Unix time",
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          {
-            "sequencer_address": {
-              "description": "The StarkNet identity of the sequencer submitting this block",
-              "$ref": "#/components/schemas/FELT"
-            }
-          },
-          {
-            "parent_hash": {
-              "description": "The hash of this block's parent",
-              "$ref": "#/components/schemas/BLOCK_HASH"
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "description": "The time in which the block was created, encoded in Unix time",
+                "type": "integer",
+                "minimum": 0
+              },
+              "sequencer_address": {
+                "description": "The StarkNet identity of the sequencer submitting this block",
+                "$ref": "#/components/schemas/FELT"
+              },
+              "parent_hash": {
+                "description": "The hash of this block's parent",
+                "$ref": "#/components/schemas/BLOCK_HASH"
+              }
             }
           }
         ]
@@ -1431,19 +1439,13 @@
             "type": "object",
             "properties": {
               "CONSTRUCTOR": {
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-                }
+                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
               },
               "EXTERNAL": {
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-                }
+                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
               },
               "L1_HANDLER": {
-                "schema": {
-                  "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
-                }
+                "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
               }
             }
           }
@@ -1460,15 +1462,11 @@
         "properties": {
           "offset": {
             "description": "The offset of the entry point in the program",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "selector": {
             "description": "A unique identifier of the entry point (function) in the program",
-            "schema": {
-              "$ref": "#/components/schemas/FELT"
-            }
+            "$ref": "#/components/schemas/FELT"
           }
         }
       },
@@ -1477,21 +1475,15 @@
         "properties": {
           "gas_consumed": {
             "description": "The Ethereum gas cost of the transaction (see https://docs.starknet.io/docs/Fees/fee-mechanism for more info)",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "gas_price": {
             "description": "The gas price (in gwei) that was used in the cost estimation",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "overall_fee": {
             "description": "The estimated fee for the transaction (in gwei), product of gas_consumed and gas_price",
-            "schema": {
-              "$ref": "#/components/schemas/NUM_AS_HEX"
-            }
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           }
         }
       }
