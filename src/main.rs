@@ -39,7 +39,7 @@ struct RustField {
     name: String,
     type_name: String,
     serde_rename: Option<String>,
-    serde_as: Option<String>,
+    serializer: Option<SerializerOverride>,
 }
 
 struct RustVariant {
@@ -50,7 +50,12 @@ struct RustVariant {
 
 struct RustFieldType {
     type_name: String,
-    serde_as: Option<String>,
+    serializer: Option<SerializerOverride>,
+}
+
+enum SerializerOverride {
+    Serde(String),
+    SerdeAs(String),
 }
 
 impl RustType {
@@ -90,7 +95,11 @@ impl RustTypeKind {
 
 impl RustStruct {
     pub fn render_stdout(&self, name: &str) {
-        if self.fields.iter().any(|item| item.serde_as.is_some()) {
+        if self
+            .fields
+            .iter()
+            .any(|item| matches!(item.serializer, Some(SerializerOverride::SerdeAs(_))))
+        {
             println!("#[serde_as]");
         }
         println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
@@ -103,8 +112,15 @@ impl RustStruct {
             if let Some(serde_rename) = &field.serde_rename {
                 println!("    #[serde(rename = \"{}\")]", serde_rename);
             }
-            if let Some(serde_as) = &field.serde_as {
-                println!("    #[serde_as(as = \"{}\")]", serde_as);
+            if let Some(serde_as) = &field.serializer {
+                match serde_as {
+                    SerializerOverride::Serde(serializer) => {
+                        println!("    #[serde(with = \"{}\")]", serializer);
+                    }
+                    SerializerOverride::SerdeAs(serializer) => {
+                        println!("    #[serde_as(as = \"{}\")]", serializer);
+                    }
+                }
             }
 
             let escaped_name = if field.name == "type" {
@@ -284,7 +300,7 @@ fn flatten_schema_fields(
                     name: lower_name,
                     type_name: field_type.type_name,
                     serde_rename: rename,
-                    serde_as: field_type.serde_as,
+                    serializer: field_type.serializer,
                 });
             }
         }
@@ -309,7 +325,7 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
             Ok(
                 get_field_type_override(ref_type_name).unwrap_or_else(|| RustFieldType {
                     type_name: to_starknet_rs_name(ref_type_name),
-                    serde_as: None,
+                    serializer: None,
                 }),
             )
         }
@@ -322,28 +338,47 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
         Schema::Primitive(value) => match value {
             Primitive::Array(value) => {
                 let item_type = get_rust_type_for_field(&value.items, specs)?;
+                let serializer = match item_type.serializer {
+                    Some(SerializerOverride::Serde(_)) => {
+                        todo!("Array wrapper for #[serde(with)] not implemented")
+                    }
+                    Some(SerializerOverride::SerdeAs(serializer)) => {
+                        Some(SerializerOverride::SerdeAs(format!("Vec<{}>", serializer)))
+                    }
+                    None => None,
+                };
                 Ok(RustFieldType {
                     type_name: format!("Vec<{}>", item_type.type_name),
-                    serde_as: item_type
-                        .serde_as
-                        .map(|serde_as| format!("Vec<{}>", serde_as)),
+                    serializer,
                 })
             }
             Primitive::Boolean(_) => Ok(RustFieldType {
                 type_name: String::from("bool"),
-                serde_as: None,
+                serializer: None,
             }),
             Primitive::Integer(_) => Ok(RustFieldType {
                 type_name: String::from("u64"),
-                serde_as: None,
+                serializer: None,
             }),
             Primitive::Object(_) => {
                 anyhow::bail!("Anonymous object types should not be used for properties");
             }
-            Primitive::String(_) => Ok(RustFieldType {
-                type_name: String::from("String"),
-                serde_as: None,
-            }),
+            Primitive::String(value) => {
+                // Hacky solution but it's the best we can do given the specs
+                if let Some(desc) = &value.description {
+                    if desc.contains("base64") {
+                        return Ok(RustFieldType {
+                            type_name: String::from("Vec<u8>"),
+                            serializer: Some(SerializerOverride::Serde(String::from("base64"))),
+                        });
+                    }
+                }
+
+                Ok(RustFieldType {
+                    type_name: String::from("String"),
+                    serializer: None,
+                })
+            }
         },
     }
 }
@@ -353,31 +388,31 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
         "ADDRESS" | "STORAGE_KEY" | "TXN_HASH" | "FELT" | "BLOCK_HASH" | "CHAIN_ID"
         | "PROTOCOL_VERSION" => RustFieldType {
             type_name: String::from("FieldElement"),
-            serde_as: Some(String::from("UfeHex")),
+            serializer: Some(SerializerOverride::SerdeAs(String::from("UfeHex"))),
         },
         "BLOCK_NUMBER" => RustFieldType {
             type_name: String::from("u64"),
-            serde_as: None,
+            serializer: None,
         },
         "NUM_AS_HEX" => RustFieldType {
             type_name: String::from("u64"),
-            serde_as: Some(String::from("NumAsHex")),
+            serializer: Some(SerializerOverride::SerdeAs(String::from("NumAsHex"))),
         },
         "ETH_ADDRESS" => RustFieldType {
             type_name: String::from("EthAddress"),
-            serde_as: None,
+            serializer: None,
         },
         "SIGNATURE" => RustFieldType {
             type_name: String::from("Vec<FieldElement>"),
-            serde_as: Some(String::from("Vec<UfeHex>")),
+            serializer: Some(SerializerOverride::SerdeAs(String::from("Vec<UfeHex>"))),
         },
         "CONTRACT_ABI" => RustFieldType {
             type_name: String::from("Vec<ContractAbiEntry>"),
-            serde_as: None,
+            serializer: None,
         },
         "CONTRACT_ENTRY_POINT_LIST" => RustFieldType {
             type_name: String::from("Vec<ContractEntryPoint>"),
-            serde_as: None,
+            serializer: None,
         },
         _ => return None,
     })
