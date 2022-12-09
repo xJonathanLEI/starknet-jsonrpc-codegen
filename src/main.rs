@@ -457,6 +457,7 @@ fn to_starknet_rs_doc(doc: &str, force_period: bool) -> String {
     let mut doc = to_sentence_case(doc);
 
     for (pattern, target) in [
+        (Regex::new(r"(?i)\bethereum\b").unwrap(), "Ethereum"),
         (Regex::new(r"(?i)\bstarknet\b").unwrap(), "StarkNet"),
         (Regex::new(r"(?i)\bstarknet\.io\b").unwrap(), "starknet.io"),
         (Regex::new(r"\bStarknet\b").unwrap(), "L1"),
