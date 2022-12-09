@@ -8,10 +8,6 @@ const MAX_LINE_LENGTH: usize = 100;
 
 const STARKNET_API_OPENRPC: &str = include_str!("./specs/starknet_api_openrpc.json");
 
-// These schemas can only be flattened. Do not generate structs for them
-// TODO: dynamically detect these flatten-only types
-const SCHEMA_EXCLUDE_LIST: [&str; 3] = ["SIGNATURE", "CONTRACT_ENTRY_POINT_LIST", "CONTRACT_ABI"];
-
 struct RustType {
     title: Option<String>,
     description: Option<String>,
@@ -179,11 +175,6 @@ fn resolve_types(specs: &Specification) -> Result<Vec<RustType>> {
 
         // Manual override exists
         if get_field_type_override(name).is_some() {
-            continue;
-        }
-
-        // Explicitly excluded
-        if SCHEMA_EXCLUDE_LIST.iter().any(|item| item == name) {
             continue;
         }
 
@@ -360,6 +351,18 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
         },
         "ETH_ADDRESS" => RustFieldType {
             type_name: String::from("EthAddress"),
+            serde_as: None,
+        },
+        "SIGNATURE" => RustFieldType {
+            type_name: String::from("Vec<FieldElement>"),
+            serde_as: Some(String::from("Vec<UfeHex>")),
+        },
+        "CONTRACT_ABI" => RustFieldType {
+            type_name: String::from("Vec<ContractAbiEntry>"),
+            serde_as: None,
+        },
+        "CONTRACT_ENTRY_POINT_LIST" => RustFieldType {
+            type_name: String::from("Vec<ContractEntryPoint>"),
             serde_as: None,
         },
         _ => return None,
