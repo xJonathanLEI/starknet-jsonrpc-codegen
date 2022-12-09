@@ -38,6 +38,7 @@ struct RustField {
     description: Option<String>,
     name: String,
     type_name: String,
+    serde_rename: Option<String>,
     serde_as: Option<String>,
 }
 
@@ -98,6 +99,9 @@ impl RustStruct {
         for field in self.fields.iter() {
             if let Some(doc) = &field.description {
                 print_doc(doc, 4);
+            }
+            if let Some(serde_rename) = &field.serde_rename {
+                println!("    #[serde(rename = \"{}\")]", serde_rename);
             }
             if let Some(serde_as) = &field.serde_as {
                 println!("    #[serde_as(as = \"{}\")]", serde_as);
@@ -268,10 +272,18 @@ fn flatten_schema_fields(
 
                 let field_type = get_rust_type_for_field(prop_value, specs)?;
 
+                let lower_name = name.to_lowercase();
+                let rename = if name == &lower_name {
+                    None
+                } else {
+                    Some(name.to_owned())
+                };
+
                 fields.push(RustField {
                     description: doc_string.map(|value| to_starknet_rs_doc(value, false)),
-                    name: name.to_owned(),
+                    name: lower_name,
                     type_name: field_type.type_name,
+                    serde_rename: rename,
                     serde_as: field_type.serde_as,
                 });
             }
