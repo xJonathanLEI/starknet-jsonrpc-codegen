@@ -319,7 +319,7 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
                 serde_as: None,
             }),
             Primitive::Integer(_) => Ok(RustFieldType {
-                type_name: String::from("u32"),
+                type_name: String::from("u64"),
                 serde_as: None,
             }),
             Primitive::Object(_) => {
