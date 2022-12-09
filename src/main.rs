@@ -147,8 +147,10 @@ fn main() {
     println!("use serde_with::serde_as;");
     println!("use starknet_core::{{");
     println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
-    println!("    types::{{FieldElement, L1Address as EthAddress}},");
+    println!("    types::FieldElement,");
     println!("}};");
+    println!();
+    println!("pub use starknet_core::types::L1Address as EthAddress;");
     println!();
     println!("use super::serde_impls::NumAsHex;");
     println!();
