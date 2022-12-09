@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::Result;
 use regex::Regex;
 
@@ -193,6 +195,8 @@ fn main() {
 fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<RustType>> {
     let mut types = vec![];
 
+    let flatten_only_types = get_flatten_only_schemas(specs);
+
     for (name, entity) in specs.components.schemas.iter() {
         let rusty_name = to_starknet_rs_name(name);
 
@@ -203,6 +207,11 @@ fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<Rust
         };
 
         eprintln!("Processing schema: {}", name);
+
+        // Operating in flatten mode so these types are useless
+        if flatten_fields && flatten_only_types.contains(name) {
+            continue;
+        }
 
         // Manual override exists
         if get_field_type_override(name).is_some() {
@@ -259,6 +268,78 @@ fn resolve_types(specs: &Specification, flatten_fields: bool) -> Result<Vec<Rust
     }
 
     Ok(types)
+}
+
+/// Finds the list of schemas that are used and only used for flattening inside objects
+fn get_flatten_only_schemas(specs: &Specification) -> Vec<String> {
+    let mut flatten_fields = HashSet::<String>::new();
+    let mut non_flatten_fields = HashSet::<String>::new();
+
+    for (_, schema) in specs.components.schemas.iter() {
+        visit_schema_for_flatten_only(schema, &mut flatten_fields, &mut non_flatten_fields);
+    }
+
+    flatten_fields
+        .into_iter()
+        .filter_map(|item| {
+            if non_flatten_fields.contains(&item) {
+                None
+            } else {
+                Some(item)
+            }
+        })
+        .collect()
+}
+
+fn visit_schema_for_flatten_only(
+    schema: &Schema,
+    flatten_fields: &mut HashSet<String>,
+    non_flatten_fields: &mut HashSet<String>,
+) {
+    match schema {
+        Schema::OneOf(one_of) => {
+            // Recursion
+            for variant in one_of.one_of.iter() {
+                match variant {
+                    Schema::Ref(reference) => {
+                        non_flatten_fields.insert(reference.name().to_owned());
+                    }
+                    _ => visit_schema_for_flatten_only(variant, flatten_fields, non_flatten_fields),
+                }
+            }
+        }
+        Schema::AllOf(all_of) => {
+            for fragment in all_of.all_of.iter() {
+                match fragment {
+                    Schema::Ref(reference) => {
+                        flatten_fields.insert(reference.name().to_owned());
+                    }
+                    _ => {
+                        visit_schema_for_flatten_only(fragment, flatten_fields, non_flatten_fields)
+                    }
+                }
+            }
+        }
+        Schema::Primitive(Primitive::Object(object)) => {
+            for (_, prop_type) in object.properties.iter() {
+                match prop_type {
+                    Schema::Ref(reference) => {
+                        non_flatten_fields.insert(reference.name().to_owned());
+                    }
+                    _ => {
+                        visit_schema_for_flatten_only(prop_type, flatten_fields, non_flatten_fields)
+                    }
+                }
+            }
+        }
+        Schema::Primitive(Primitive::Array(array)) => match array.items.as_ref() {
+            Schema::Ref(reference) => {
+                non_flatten_fields.insert(reference.name().to_owned());
+            }
+            _ => visit_schema_for_flatten_only(&array.items, flatten_fields, non_flatten_fields),
+        },
+        _ => {}
+    }
 }
 
 fn get_schema_fields(
