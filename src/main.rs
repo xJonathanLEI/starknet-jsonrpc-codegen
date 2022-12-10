@@ -212,8 +212,6 @@ fn resolve_types(specs: &Specification, flatten_option: &FlattenOption) -> Resul
             None => entity.summary(),
         };
 
-        eprintln!("Processing schema: {}", name);
-
         if flatten_only_types.contains(name) {
             continue;
         }
