@@ -235,10 +235,7 @@ fn resolve_types(specs: &Specification, flatten_option: &FlattenOption) -> Resul
                 }
                 Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
                     let mut fields = vec![];
-                    if get_schema_fields(entity, specs, &mut fields, flatten_option).is_err() {
-                        eprintln!("WARNING: unable to generate struct for {name}");
-                        continue;
-                    }
+                    get_schema_fields(entity, specs, &mut fields, flatten_option)?;
                     RustTypeKind::Struct(RustStruct { fields })
                 }
                 Schema::Primitive(Primitive::String(value)) => match &value.r#enum {
