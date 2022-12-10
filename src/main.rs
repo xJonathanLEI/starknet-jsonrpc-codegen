@@ -9,7 +9,19 @@ mod spec;
 
 const MAX_LINE_LENGTH: usize = 100;
 
-const STARKNET_API_OPENRPC: &str = include_str!("./specs/0.2.1/starknet_api_openrpc.json");
+const TARGET_VERSION: SpecVersion = SpecVersion::V0_2_1;
+
+struct GenerationProfile {
+    version: SpecVersion,
+    raw_specs: &'static str,
+    flatten_options: FlattenOption,
+}
+
+#[derive(PartialEq, Eq)]
+enum SpecVersion {
+    V0_1_0,
+    V0_2_1,
+}
 
 struct RustType {
     title: Option<String>,
@@ -62,7 +74,6 @@ enum SerializerOverride {
     SerdeAs(String),
 }
 
-#[allow(unused)]
 enum FlattenOption {
     All,
     Selected(Vec<String>),
@@ -177,8 +188,29 @@ impl RustWrapper {
 }
 
 fn main() {
+    let profiles: [GenerationProfile; 2] = [
+        GenerationProfile {
+            version: SpecVersion::V0_1_0,
+            raw_specs: include_str!("./specs/0.1.0/starknet_api_openrpc.json"),
+            flatten_options: FlattenOption::Selected(vec![
+                String::from("BLOCK_BODY_WITH_TXS"),
+                String::from("BLOCK_BODY_WITH_TX_HASHES"),
+            ]),
+        },
+        GenerationProfile {
+            version: SpecVersion::V0_2_1,
+            raw_specs: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
+            flatten_options: FlattenOption::All,
+        },
+    ];
+
+    let profile = profiles
+        .into_iter()
+        .find(|profile| profile.version == TARGET_VERSION)
+        .expect("Unable to find profile");
+
     let specs: Specification =
-        serde_json::from_str(STARKNET_API_OPENRPC).expect("Failed to parse specification");
+        serde_json::from_str(profile.raw_specs).expect("Failed to parse specification");
 
     println!("use serde::{{Deserialize, Serialize}};");
     println!("use serde_with::serde_as;");
@@ -187,12 +219,17 @@ fn main() {
     println!("    types::FieldElement,");
     println!("}};");
     println!();
-    println!("pub use starknet_core::types::L1Address as EthAddress;");
-    println!();
+
+    // In later versions this type is still defined by never actually used
+    if profile.version == SpecVersion::V0_1_0 {
+        println!("pub use starknet_core::types::L1Address as EthAddress;");
+        println!();
+    }
+
     println!("use super::serde_impls::NumAsHex;");
     println!();
 
-    let types = resolve_types(&specs, &FlattenOption::All).expect("Failed to resolve types");
+    let types = resolve_types(&specs, &profile.flatten_options).expect("Failed to resolve types");
     for (ind, rust_type) in types.iter().enumerate() {
         rust_type.render_stdout(ind != types.len() - 1);
     }
@@ -227,8 +264,10 @@ fn resolve_types(specs: &Specification, flatten_option: &FlattenOption) -> Resul
                     type_name: get_rust_type_for_field(entity, specs)?.type_name,
                 }),
                 Schema::OneOf(_) => {
-                    // TODO: implement
-                    eprintln!("WARNING: enum generation with oneOf not implemented");
+                    eprintln!(
+                        "OneOf enum generation not implemented. Enum not generated for {}",
+                        name
+                    );
                     continue;
                 }
                 Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
