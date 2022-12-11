@@ -48,6 +48,7 @@ struct RustType {
     content: RustTypeKind,
 }
 
+#[allow(unused)]
 enum RustTypeKind {
     Struct(RustStruct),
     Enum(RustEnum),
@@ -551,9 +552,16 @@ fn resolve_types(
 
         let content = {
             match entity {
-                Schema::Ref(_) => RustTypeKind::Wrapper(RustWrapper {
-                    type_name: get_rust_type_for_field(entity, specs)?.type_name,
-                }),
+                Schema::Ref(reference) => {
+                    let mut fields = vec![];
+                    let redirected_schema = specs
+                        .components
+                        .schemas
+                        .get(reference.name())
+                        .ok_or_else(|| anyhow::anyhow!(""))?;
+                    get_schema_fields(redirected_schema, specs, &mut fields, flatten_option)?;
+                    RustTypeKind::Struct(RustStruct { fields })
+                }
                 Schema::OneOf(_) => {
                     not_implemented_types.push(name.to_owned());
 
