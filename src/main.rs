@@ -411,13 +411,181 @@ fn main() {
             raw_specs: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
             flatten_options: FlattenOption::All,
             ignore_types: vec![],
-            fixed_field_types: vec![RustTypeWithFixedFields {
-                name: "DeclareTransaction",
-                fields: vec![FixedField {
-                    name: "type",
-                    value: "\"DECLARE\"",
-                }],
-            }],
+            // We need these because they're implied by the network but not explicitly specified.
+            // So it's impossible to dynamically derive them accurately.
+            fixed_field_types: vec![
+                RustTypeWithFixedFields {
+                    name: "DeclareTransaction",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DECLARE\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "BroadcastedDeclareTransaction",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DECLARE\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "DeployAccountTransaction",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY_ACCOUNT\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "BroadcastedDeployAccountTransaction",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY_ACCOUNT\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "DeployTransaction",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "BroadcastedDeployTransaction",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "InvokeTransactionV0",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"INVOKE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&0",
+                        },
+                    ],
+                },
+                RustTypeWithFixedFields {
+                    name: "InvokeTransactionV1",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"INVOKE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&1",
+                        },
+                    ],
+                },
+                RustTypeWithFixedFields {
+                    name: "BroadcastedInvokeTransactionV0",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"INVOKE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&0",
+                        },
+                    ],
+                },
+                RustTypeWithFixedFields {
+                    name: "BroadcastedInvokeTransactionV1",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"INVOKE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&1",
+                        },
+                    ],
+                },
+                RustTypeWithFixedFields {
+                    name: "L1HandlerTransaction",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"L1_HANDLER\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "InvokeTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"INVOKE\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "DeclareTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DECLARE\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "DeployAccountTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY_ACCOUNT\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "DeployTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "L1HandlerTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"L1_HANDLER\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "PendingInvokeTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"INVOKE\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "PendingDeclareTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DECLARE\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "PendingDeployAccountTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY_ACCOUNT\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "PendingDeployTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"DEPLOY\"",
+                    }],
+                },
+                RustTypeWithFixedFields {
+                    name: "PendingL1HandlerTransactionReceipt",
+                    fields: vec![FixedField {
+                        name: "type",
+                        value: "\"L1_HANDLER\"",
+                    }],
+                },
+            ],
         },
     ];
 
