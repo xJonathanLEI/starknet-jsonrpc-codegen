@@ -409,10 +409,7 @@ fn main() {
             version: SpecVersion::V0_2_1,
             raw_specs: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
             flatten_options: FlattenOption::All,
-            ignore_types: vec![
-                String::from("INVOKE_TXN"),
-                String::from("BROADCASTED_INVOKE_TXN"),
-            ],
+            ignore_types: vec![],
             fixed_field_types: vec![RustTypeWithFixedFields {
                 name: "DeclareTransaction",
                 fields: vec![FixedField {

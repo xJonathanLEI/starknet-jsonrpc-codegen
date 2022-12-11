@@ -1359,58 +1359,94 @@
       "INVOKE_TXN_V0": {
         "title": "version 0 invoke transaction",
         "description": "invokes a specific function in the desired contract (not necessarily an account)",
-        "$ref": "#/components/schemas/FUNCTION_CALL"
-      },
-      "INVOKE_TXN_V1": {
-        "title": "version 1 invoke transaction",
-        "description": "initiates a transaction from a given account",
-        "type": "object",
-        "properties": {
-          "sender_address": {
-            "$ref": "#/components/schemas/ADDRESS"
-          },
-          "calldata": {
-            "type": "array",
-            "description": "The data expected by the account's `execute` function (in most usecases, this includes the called contract address and a function selector)",
-            "items": {
-              "$ref": "#/components/schemas/FELT"
-            }
-          }
-        }
-      },
-      "INVOKE_TXN": {
-        "title": "Initiate a transaction from an account",
         "allOf": [
           {
             "$ref": "#/components/schemas/COMMON_TXN_PROPERTIES"
           },
           {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/INVOKE_TXN_V0"
-              },
-              {
-                "$ref": "#/components/schemas/INVOKE_TXN_V1"
-              }
-            ]
+            "$ref": "#/components/schemas/FUNCTION_CALL"
           }
         ]
       },
-      "BROADCASTED_INVOKE_TXN": {
-        "description": "mempool representation of an invoke transaction",
+      "INVOKE_TXN_V1": {
+        "title": "version 1 invoke transaction",
+        "description": "initiates a transaction from a given account",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/COMMON_TXN_PROPERTIES"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sender_address": {
+                "$ref": "#/components/schemas/ADDRESS"
+              },
+              "calldata": {
+                "type": "array",
+                "description": "The data expected by the account's `execute` function (in most usecases, this includes the called contract address and a function selector)",
+                "items": {
+                  "$ref": "#/components/schemas/FELT"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "BROADCASTED_INVOKE_TXN_V0": {
+        "title": "version 0 invoke transaction",
+        "description": "invokes a specific function in the desired contract (not necessarily an account)",
         "allOf": [
           {
             "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
           },
           {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/INVOKE_TXN_V0"
+            "$ref": "#/components/schemas/FUNCTION_CALL"
+          }
+        ]
+      },
+      "BROADCASTED_INVOKE_TXN_V1": {
+        "title": "version 1 invoke transaction",
+        "description": "initiates a transaction from a given account",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sender_address": {
+                "$ref": "#/components/schemas/ADDRESS"
               },
-              {
-                "$ref": "#/components/schemas/INVOKE_TXN_V1"
+              "calldata": {
+                "type": "array",
+                "description": "The data expected by the account's `execute` function (in most usecases, this includes the called contract address and a function selector)",
+                "items": {
+                  "$ref": "#/components/schemas/FELT"
+                }
               }
-            ]
+            }
+          }
+        ]
+      },
+      "INVOKE_TXN": {
+        "title": "Initiate a transaction from an account",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/INVOKE_TXN_V0"
+          },
+          {
+            "$ref": "#/components/schemas/INVOKE_TXN_V1"
+          }
+        ]
+      },
+      "BROADCASTED_INVOKE_TXN": {
+        "description": "mempool representation of an invoke transaction",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN_V0"
+          },
+          {
+            "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN_V1"
           }
         ]
       },
