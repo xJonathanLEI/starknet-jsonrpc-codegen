@@ -153,7 +153,11 @@ impl RustStruct {
             println!("#[serde_as]");
         }
         if derive_serde {
-            println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+            if name == "EventFilter" {
+                println!("#[derive(Debug, Clone, Serialize)]");
+            } else {
+                println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+            }
         } else {
             println!("#[derive(Debug, Clone)]");
         }
