@@ -469,7 +469,7 @@ fn main() {
         println!();
     }
 
-    println!("use super::serde_impls::NumAsHex;");
+    println!("use super::{{serde_impls::NumAsHex, *}};");
     println!();
 
     let mut manual_serde_types = vec![];
