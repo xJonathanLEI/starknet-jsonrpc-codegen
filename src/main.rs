@@ -7,6 +7,10 @@ use crate::spec::*;
 
 mod spec;
 
+mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
 const MAX_LINE_LENGTH: usize = 100;
 
 const TARGET_VERSION: SpecVersion = SpecVersion::V0_2_1;
@@ -600,6 +604,15 @@ fn main() {
     println!("// AUTO-GENERATED CODE. DO NOT EDIT");
     println!("// To change the code generated, modify the codegen tool instead:");
     println!("//     https://github.com/xJonathanLEI/starknet-jsonrpc-codegen");
+    println!();
+    println!("// Code generated with version:");
+    match built_info::GIT_COMMIT_HASH {
+        Some(commit_hash) => println!(
+            "//     https://github.com/xJonathanLEI/starknet-jsonrpc-codegen#{}",
+            commit_hash
+        ),
+        None => println!("    <Unable to determine Git commit hash>"),
+    }
     println!();
 
     if !profile.ignore_types.is_empty() {
