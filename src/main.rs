@@ -223,6 +223,11 @@ fn main() {
     let specs: Specification =
         serde_json::from_str(profile.raw_specs).expect("Failed to parse specification");
 
+    println!("// AUTO-GENERATED CODE. DO NOT EDIT");
+    println!("// To change the code generated, modify the codegen tool instead:");
+    println!("//     https://github.com/xJonathanLEI/starknet-jsonrpc-codegen");
+    println!();
+
     if !profile.ignore_types.is_empty() {
         println!("// These types are ignored from code generation. Implement them manually:");
         for ignored_type in profile.ignore_types.iter() {
