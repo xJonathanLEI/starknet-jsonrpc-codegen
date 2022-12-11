@@ -610,6 +610,9 @@ fn resolve_types(
 
 /// Finds the list of schemas that are used and only used for flattening inside objects
 fn get_flatten_only_schemas(specs: &Specification, flatten_option: &FlattenOption) -> Vec<String> {
+    // We need this for now since we don't search method calls, so we could get false positives
+    const HARD_CODED_NON_FLATTEN_SCHEMAS: [&str; 1] = ["FUNCTION_CALL"];
+
     let mut flatten_fields = HashSet::<String>::new();
     let mut non_flatten_fields = HashSet::<String>::new();
 
@@ -625,7 +628,9 @@ fn get_flatten_only_schemas(specs: &Specification, flatten_option: &FlattenOptio
     flatten_fields
         .into_iter()
         .filter_map(|item| {
-            if non_flatten_fields.contains(&item) {
+            if non_flatten_fields.contains(&item)
+                || HARD_CODED_NON_FLATTEN_SCHEMAS.contains(&item.as_str())
+            {
                 None
             } else {
                 Some(item)
