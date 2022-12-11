@@ -24,6 +24,11 @@ enum SpecVersion {
     V0_2_1,
 }
 
+struct TypeResolutionResult {
+    types: Vec<RustType>,
+    not_implemented: Vec<String>,
+}
+
 struct RustType {
     title: Option<String>,
     description: Option<String>,
@@ -226,6 +231,17 @@ fn main() {
         println!();
     }
 
+    let result = resolve_types(&specs, &profile.flatten_options, &profile.ignore_types)
+        .expect("Failed to resolve types");
+
+    if !result.not_implemented.is_empty() {
+        println!("// Code generation requested but not implemented for these types:");
+        for type_name in result.not_implemented.iter() {
+            println!("// - `{}`", type_name);
+        }
+        println!();
+    }
+
     println!("use serde::{{Deserialize, Serialize}};");
     println!("use serde_with::serde_as;");
     println!("use starknet_core::{{");
@@ -243,10 +259,8 @@ fn main() {
     println!("use super::serde_impls::NumAsHex;");
     println!();
 
-    let types = resolve_types(&specs, &profile.flatten_options, &profile.ignore_types)
-        .expect("Failed to resolve types");
-    for (ind, rust_type) in types.iter().enumerate() {
-        rust_type.render_stdout(ind != types.len() - 1);
+    for (ind, rust_type) in result.types.iter().enumerate() {
+        rust_type.render_stdout(ind != result.types.len() - 1);
     }
 }
 
@@ -254,8 +268,9 @@ fn resolve_types(
     specs: &Specification,
     flatten_option: &FlattenOption,
     ignore_types: &[String],
-) -> Result<Vec<RustType>> {
+) -> Result<TypeResolutionResult> {
     let mut types = vec![];
+    let mut not_implemented_types = vec![];
 
     let flatten_only_types = get_flatten_only_schemas(specs, flatten_option);
 
@@ -288,6 +303,8 @@ fn resolve_types(
                     type_name: get_rust_type_for_field(entity, specs)?.type_name,
                 }),
                 Schema::OneOf(_) => {
+                    not_implemented_types.push(name.to_owned());
+
                     eprintln!(
                         "OneOf enum generation not implemented. Enum not generated for {}",
                         name
@@ -330,7 +347,10 @@ fn resolve_types(
         });
     }
 
-    Ok(types)
+    Ok(TypeResolutionResult {
+        types,
+        not_implemented: not_implemented_types,
+    })
 }
 
 /// Finds the list of schemas that are used and only used for flattening inside objects
