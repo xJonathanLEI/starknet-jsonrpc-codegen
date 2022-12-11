@@ -16,12 +16,23 @@ struct GenerationProfile {
     raw_specs: &'static str,
     flatten_options: FlattenOption,
     ignore_types: Vec<String>,
+    fixed_field_types: Vec<RustTypeWithFixedFields>,
 }
 
 #[derive(PartialEq, Eq)]
 enum SpecVersion {
     V0_1_0,
     V0_2_1,
+}
+
+struct RustTypeWithFixedFields {
+    name: &'static str,
+    fields: Vec<FixedField>,
+}
+
+#[derive(Clone)]
+struct FixedField {
+    name: &'static str,
 }
 
 struct TypeResolutionResult {
@@ -86,7 +97,7 @@ enum FlattenOption {
 }
 
 impl RustType {
-    pub fn render_stdout(&self, trailing_line: bool) {
+    pub fn render_stdout(&self, fixed_fields: &[FixedField], trailing_line: bool) {
         match (self.title.as_ref(), self.description.as_ref()) {
             (Some(title), Some(description)) => {
                 print_doc(title, 0);
@@ -102,7 +113,7 @@ impl RustType {
             (None, None) => {}
         }
 
-        self.content.render_stdout(&self.name);
+        self.content.render_stdout(&self.name, fixed_fields);
 
         if trailing_line {
             println!();
@@ -111,9 +122,9 @@ impl RustType {
 }
 
 impl RustTypeKind {
-    pub fn render_stdout(&self, name: &str) {
+    pub fn render_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
         match self {
-            Self::Struct(value) => value.render_stdout(name),
+            Self::Struct(value) => value.render_stdout(name, fixed_fields),
             Self::Enum(value) => value.render_stdout(name),
             Self::Wrapper(value) => value.render_stdout(name),
         }
@@ -121,37 +132,51 @@ impl RustTypeKind {
 }
 
 impl RustStruct {
-    pub fn render_stdout(&self, name: &str) {
-        if self
-            .fields
-            .iter()
-            .any(|item| matches!(item.serializer, Some(SerializerOverride::SerdeAs(_))))
+    pub fn render_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
+        let derive_serde = fixed_fields.is_empty();
+
+        if derive_serde
+            && self
+                .fields
+                .iter()
+                .any(|item| matches!(item.serializer, Some(SerializerOverride::SerdeAs(_))))
         {
             println!("#[serde_as]");
         }
-        println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+        if derive_serde {
+            println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+        } else {
+            println!("#[derive(Debug, Clone)]");
+        }
         println!("pub struct {} {{", name);
 
         for field in self.fields.iter() {
+            // Fixed fields only exist in serde impls
+            if fixed_fields.iter().any(|item| item.name == field.name) {
+                continue;
+            }
+
             if let Some(doc) = &field.description {
                 print_doc(doc, 4);
             }
-            if field.optional {
-                println!("    #[serde(default, skip_serializing_if = \"Option::is_none\")]");
-            }
-            if let Some(serde_rename) = &field.serde_rename {
-                println!("    #[serde(rename = \"{}\")]", serde_rename);
-            }
-            if field.serde_faltten {
-                println!("    #[serde(flatten)]");
-            }
-            if let Some(serde_as) = &field.serializer {
-                match serde_as {
-                    SerializerOverride::Serde(serializer) => {
-                        println!("    #[serde(with = \"{}\")]", serializer);
-                    }
-                    SerializerOverride::SerdeAs(serializer) => {
-                        println!("    #[serde_as(as = \"{}\")]", serializer);
+            if derive_serde {
+                if field.optional {
+                    println!("    #[serde(default, skip_serializing_if = \"Option::is_none\")]");
+                }
+                if let Some(serde_rename) = &field.serde_rename {
+                    println!("    #[serde(rename = \"{}\")]", serde_rename);
+                }
+                if field.serde_faltten {
+                    println!("    #[serde(flatten)]");
+                }
+                if let Some(serde_as) = &field.serializer {
+                    match serde_as {
+                        SerializerOverride::Serde(serializer) => {
+                            println!("    #[serde(with = \"{}\")]", serializer);
+                        }
+                        SerializerOverride::SerdeAs(serializer) => {
+                            println!("    #[serde_as(as = \"{}\")]", serializer);
+                        }
                     }
                 }
             }
@@ -203,6 +228,7 @@ fn main() {
                 String::from("BLOCK_BODY_WITH_TX_HASHES"),
             ]),
             ignore_types: vec![],
+            fixed_field_types: vec![],
         },
         GenerationProfile {
             version: SpecVersion::V0_2_1,
@@ -212,6 +238,10 @@ fn main() {
                 String::from("INVOKE_TXN"),
                 String::from("BROADCASTED_INVOKE_TXN"),
             ],
+            fixed_field_types: vec![RustTypeWithFixedFields {
+                name: "DeclareTransaction",
+                fields: vec![FixedField { name: "type" }],
+            }],
         },
     ];
 
@@ -265,7 +295,19 @@ fn main() {
     println!();
 
     for (ind, rust_type) in result.types.iter().enumerate() {
-        rust_type.render_stdout(ind != result.types.len() - 1);
+        let fixed_fields_for_type = profile
+            .fixed_field_types
+            .iter()
+            .find_map(|item| {
+                if item.name == rust_type.name {
+                    Some(item.fields.clone())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+
+        rust_type.render_stdout(&fixed_fields_for_type, ind != result.types.len() - 1);
     }
 }
 
