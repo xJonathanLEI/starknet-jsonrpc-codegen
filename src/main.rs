@@ -15,6 +15,7 @@ struct GenerationProfile {
     version: SpecVersion,
     raw_specs: &'static str,
     flatten_options: FlattenOption,
+    ignore_types: Vec<String>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -196,11 +197,16 @@ fn main() {
                 String::from("BLOCK_BODY_WITH_TXS"),
                 String::from("BLOCK_BODY_WITH_TX_HASHES"),
             ]),
+            ignore_types: vec![],
         },
         GenerationProfile {
             version: SpecVersion::V0_2_1,
             raw_specs: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
             flatten_options: FlattenOption::All,
+            ignore_types: vec![
+                String::from("INVOKE_TXN"),
+                String::from("BROADCASTED_INVOKE_TXN"),
+            ],
         },
     ];
 
@@ -211,6 +217,14 @@ fn main() {
 
     let specs: Specification =
         serde_json::from_str(profile.raw_specs).expect("Failed to parse specification");
+
+    if !profile.ignore_types.is_empty() {
+        println!("// These types are ignored from code generation. Implement them manually:");
+        for ignored_type in profile.ignore_types.iter() {
+            println!("// - `{}`", ignored_type);
+        }
+        println!();
+    }
 
     println!("use serde::{{Deserialize, Serialize}};");
     println!("use serde_with::serde_as;");
@@ -229,13 +243,18 @@ fn main() {
     println!("use super::serde_impls::NumAsHex;");
     println!();
 
-    let types = resolve_types(&specs, &profile.flatten_options).expect("Failed to resolve types");
+    let types = resolve_types(&specs, &profile.flatten_options, &profile.ignore_types)
+        .expect("Failed to resolve types");
     for (ind, rust_type) in types.iter().enumerate() {
         rust_type.render_stdout(ind != types.len() - 1);
     }
 }
 
-fn resolve_types(specs: &Specification, flatten_option: &FlattenOption) -> Result<Vec<RustType>> {
+fn resolve_types(
+    specs: &Specification,
+    flatten_option: &FlattenOption,
+    ignore_types: &[String],
+) -> Result<Vec<RustType>> {
     let mut types = vec![];
 
     let flatten_only_types = get_flatten_only_schemas(specs, flatten_option);
@@ -249,12 +268,17 @@ fn resolve_types(specs: &Specification, flatten_option: &FlattenOption) -> Resul
             None => entity.summary(),
         };
 
-        if flatten_only_types.contains(name) {
+        // Explicitly ignored types
+        if ignore_types.contains(name) {
             continue;
         }
 
         // Manual override exists
         if get_field_type_override(name).is_some() {
+            continue;
+        }
+
+        if flatten_only_types.contains(name) {
             continue;
         }
 
