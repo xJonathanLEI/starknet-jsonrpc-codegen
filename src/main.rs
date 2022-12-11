@@ -33,6 +33,7 @@ struct RustTypeWithFixedFields {
 #[derive(Clone)]
 struct FixedField {
     name: &'static str,
+    value: &'static str,
 }
 
 struct TypeResolutionResult {
@@ -97,7 +98,7 @@ enum FlattenOption {
 }
 
 impl RustType {
-    pub fn render_stdout(&self, fixed_fields: &[FixedField], trailing_line: bool) {
+    pub fn render_stdout(&self, fixed_fields: &[FixedField]) {
         match (self.title.as_ref(), self.description.as_ref()) {
             (Some(title), Some(description)) => {
                 print_doc(title, 0);
@@ -114,9 +115,12 @@ impl RustType {
         }
 
         self.content.render_stdout(&self.name, fixed_fields);
+    }
 
-        if trailing_line {
-            println!();
+    pub fn render_serde_stdout(&self, fixed_fields: &[FixedField]) {
+        match &self.content {
+            RustTypeKind::Struct(content) => content.render_serde_stdout(&self.name, fixed_fields),
+            _ => todo!("serde blocks only implemented for structs"),
         }
     }
 }
@@ -159,36 +163,143 @@ impl RustStruct {
             if let Some(doc) = &field.description {
                 print_doc(doc, 4);
             }
-            if derive_serde {
-                if field.optional {
-                    println!("    #[serde(default, skip_serializing_if = \"Option::is_none\")]");
-                }
-                if let Some(serde_rename) = &field.serde_rename {
-                    println!("    #[serde(rename = \"{}\")]", serde_rename);
-                }
-                if field.serde_faltten {
-                    println!("    #[serde(flatten)]");
-                }
-                if let Some(serde_as) = &field.serializer {
-                    match serde_as {
-                        SerializerOverride::Serde(serializer) => {
-                            println!("    #[serde(with = \"{}\")]", serializer);
-                        }
-                        SerializerOverride::SerdeAs(serializer) => {
-                            println!("    #[serde_as(as = \"{}\")]", serializer);
-                        }
-                    }
-                }
-            }
 
-            let escaped_name = if field.name == "type" {
-                "r#type"
-            } else {
-                &field.name
-            };
-            println!("    pub {}: {},", escaped_name, field.type_name);
+            for line in field.def_lines(4, derive_serde, false) {
+                println!("{line}")
+            }
         }
 
+        println!("}}");
+    }
+
+    pub fn render_serde_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
+        self.render_impl_serialize_stdout(name, fixed_fields);
+        println!();
+        self.render_impl_deserialize_stdout(name, fixed_fields);
+    }
+
+    fn render_impl_serialize_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
+        println!("impl Serialize for {} {{", name);
+        println!(
+            "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
+        );
+
+        if self
+            .fields
+            .iter()
+            .any(|item| matches!(item.serializer, Some(SerializerOverride::SerdeAs(_))))
+        {
+            println!("        #[serde_as]");
+        }
+
+        println!("        #[derive(Serialize)]");
+        println!("        struct Tagged<'a> {{");
+
+        for field in self.fields.iter() {
+            for line in field.def_lines(12, true, true).iter() {
+                println!("{line}");
+            }
+        }
+
+        println!("        }}");
+        println!();
+        println!("        let tagged = Tagged {{");
+
+        for field in self.fields.iter() {
+            match fixed_fields.iter().find(|item| item.name == field.name) {
+                Some(fixed_field) => {
+                    println!(
+                        "            {}: {},",
+                        escape_name(&field.name),
+                        fixed_field.value
+                    )
+                }
+                None => println!(
+                    "            {}: &self.{},",
+                    escape_name(&field.name),
+                    escape_name(&field.name)
+                ),
+            }
+        }
+
+        println!("        }};");
+        println!();
+        println!("        Tagged::serialize(&tagged, serializer)");
+
+        println!("    }}");
+        println!("}}");
+    }
+
+    fn render_impl_deserialize_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
+        println!("impl<'de> Deserialize<'de> for {} {{", name);
+        println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
+
+        if self
+            .fields
+            .iter()
+            .any(|item| matches!(item.serializer, Some(SerializerOverride::SerdeAs(_))))
+        {
+            println!("        #[serde_as]");
+        }
+
+        println!("        #[derive(Deserialize)]");
+        println!("        struct Tagged {{");
+
+        for field in self.fields.iter() {
+            let lines = match fixed_fields.iter().find(|item| item.name == field.name) {
+                Some(_) => RustField {
+                    description: field.description.clone(),
+                    name: field.name.clone(),
+                    optional: true,
+                    type_name: format!("Option<{}>", field.type_name),
+                    serde_rename: field.serde_rename.clone(),
+                    serde_faltten: field.serde_faltten,
+                    serializer: field.serializer.as_ref().map(|value| value.to_optional()),
+                }
+                .def_lines(12, true, false),
+                None => field.def_lines(12, true, false),
+            };
+
+            for line in lines.iter() {
+                println!("{line}");
+            }
+        }
+
+        println!("        }}");
+        println!();
+        println!("        let tagged = Tagged::deserialize(deserializer)?;");
+        println!();
+
+        for fixed_field in fixed_fields.iter() {
+            println!(
+                "        if let Some(tag_field) = &tagged.{} {{",
+                escape_name(fixed_field.name)
+            );
+            println!("            if tag_field != {} {{", fixed_field.value);
+            println!(
+                "                return Err(serde::de::Error::custom(\"Invalid `{}` value\"));",
+                fixed_field.name
+            );
+            println!("            }}");
+            println!("        }}");
+            println!();
+        }
+
+        println!("        Ok(Self {{");
+
+        for field in self.fields.iter() {
+            if !fixed_fields.iter().any(|item| item.name == field.name) {
+                println!(
+                    "            {}: tagged.{},",
+                    escape_name(&field.name),
+                    escape_name(&field.name)
+                );
+            }
+        }
+
+        println!("        }})");
+
+        println!("    }}");
         println!("}}");
     }
 }
@@ -218,6 +329,70 @@ impl RustWrapper {
     }
 }
 
+impl RustField {
+    pub fn def_lines(&self, leading_spaces: usize, serde_attrs: bool, is_ref: bool) -> Vec<String> {
+        let mut lines = vec![];
+
+        let leading_spaces = " ".repeat(leading_spaces);
+
+        if serde_attrs {
+            if self.optional {
+                lines.push(format!(
+                    "{}#[serde(default, skip_serializing_if = \"Option::is_none\")]",
+                    leading_spaces
+                ));
+            }
+            if let Some(serde_rename) = &self.serde_rename {
+                lines.push(format!(
+                    "{}#[serde(rename = \"{}\")]",
+                    leading_spaces, serde_rename
+                ));
+            }
+            if self.serde_faltten {
+                lines.push(format!("{}#[serde(flatten)]", leading_spaces));
+            }
+            if let Some(serde_as) = &self.serializer {
+                lines.push(match serde_as {
+                    SerializerOverride::Serde(serializer) => {
+                        format!("{}#[serde(with = \"{}\")]", leading_spaces, serializer)
+                    }
+                    SerializerOverride::SerdeAs(serializer) => {
+                        format!("{}#[serde_as(as = \"{}\")]", leading_spaces, serializer)
+                    }
+                });
+            }
+        }
+
+        lines.push(format!(
+            "{}pub {}: {},",
+            leading_spaces,
+            escape_name(&self.name),
+            if is_ref {
+                if self.type_name == "String" {
+                    String::from("&'a str")
+                } else {
+                    format!("&'a {}", self.type_name)
+                }
+            } else {
+                self.type_name.clone()
+            },
+        ));
+
+        lines
+    }
+}
+
+impl SerializerOverride {
+    pub fn to_optional(&self) -> Self {
+        match self {
+            SerializerOverride::Serde(_) => {
+                todo!("Optional transformation of #[serde(with)] not implemented")
+            }
+            SerializerOverride::SerdeAs(serde_as) => Self::SerdeAs(format!("Option<{}>", serde_as)),
+        }
+    }
+}
+
 fn main() {
     let profiles: [GenerationProfile; 2] = [
         GenerationProfile {
@@ -240,7 +415,10 @@ fn main() {
             ],
             fixed_field_types: vec![RustTypeWithFixedFields {
                 name: "DeclareTransaction",
-                fields: vec![FixedField { name: "type" }],
+                fields: vec![FixedField {
+                    name: "type",
+                    value: "\"DECLARE\"",
+                }],
             }],
         },
     ];
@@ -277,7 +455,7 @@ fn main() {
         println!();
     }
 
-    println!("use serde::{{Deserialize, Serialize}};");
+    println!("use serde::{{Deserialize, Deserializer, Serialize, Serializer}};");
     println!("use serde_with::serde_as;");
     println!("use starknet_core::{{");
     println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
@@ -294,6 +472,8 @@ fn main() {
     println!("use super::serde_impls::NumAsHex;");
     println!();
 
+    let mut manual_serde_types = vec![];
+
     for (ind, rust_type) in result.types.iter().enumerate() {
         let fixed_fields_for_type = profile
             .fixed_field_types
@@ -307,7 +487,35 @@ fn main() {
             })
             .unwrap_or_default();
 
-        rust_type.render_stdout(&fixed_fields_for_type, ind != result.types.len() - 1);
+        if !fixed_fields_for_type.is_empty() {
+            manual_serde_types.push(rust_type);
+        }
+
+        rust_type.render_stdout(&fixed_fields_for_type);
+
+        if ind != result.types.len() - 1 || !manual_serde_types.is_empty() {
+            println!();
+        }
+    }
+
+    for (ind, rust_type) in manual_serde_types.iter().enumerate() {
+        let fixed_fields_for_type = profile
+            .fixed_field_types
+            .iter()
+            .find_map(|item| {
+                if item.name == rust_type.name {
+                    Some(item.fields.clone())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+
+        rust_type.render_serde_stdout(&fixed_fields_for_type);
+
+        if ind != manual_serde_types.len() - 1 {
+            println!();
+        }
     }
 }
 
@@ -591,15 +799,7 @@ fn get_schema_fields(
                     field_type.type_name
                 };
                 let serializer = if field_optional {
-                    match field_type.serializer {
-                        Some(SerializerOverride::Serde(_)) => {
-                            todo!("Optional transformation of #[serde(with)] not implemented")
-                        }
-                        Some(SerializerOverride::SerdeAs(serde_as)) => {
-                            Some(SerializerOverride::SerdeAs(format!("Option<{}>", serde_as)))
-                        }
-                        None => None,
-                    }
+                    field_type.serializer.map(|value| value.to_optional())
                 } else {
                     field_type.serializer
                 };
@@ -725,6 +925,10 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             type_name: String::from("Vec<ContractEntryPoint>"),
             serializer: None,
         },
+        "TXN_TYPE" => RustFieldType {
+            type_name: String::from("String"),
+            serializer: None,
+        },
         _ => return None,
     })
 }
@@ -848,4 +1052,12 @@ fn to_sentence_case(name: &str) -> String {
     }
 
     result
+}
+
+fn escape_name(name: &str) -> &str {
+    if name == "type" {
+        "r#type"
+    } else {
+        name
+    }
 }
