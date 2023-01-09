@@ -157,9 +157,13 @@ impl RustStruct {
                 println!("#[derive(Debug, Clone, Serialize)]");
             } else {
                 println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
-                println!(
-                    "#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
-                );
+
+                // Workaround for pathfinder spec divergence on the `stateMutability` field
+                if name != "FunctionAbiEntry" {
+                    println!(
+                        "#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
+                    );
+                }
             }
         } else {
             println!("#[derive(Debug, Clone)]");
