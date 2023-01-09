@@ -157,6 +157,9 @@ impl RustStruct {
                 println!("#[derive(Debug, Clone, Serialize)]");
             } else {
                 println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+                println!(
+                    "#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
+                );
             }
         } else {
             println!("#[derive(Debug, Clone)]");
@@ -252,6 +255,9 @@ impl RustStruct {
         }
 
         println!("        #[derive(Deserialize)]");
+        println!(
+            "        #[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
+        );
         println!("        struct Tagged {{");
 
         for field in self.fields.iter() {
