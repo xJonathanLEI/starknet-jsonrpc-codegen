@@ -325,7 +325,7 @@ impl RustStruct {
 
 impl RustEnum {
     pub fn render_stdout(&self, name: &str) {
-        println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+        println!("#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]");
         println!("pub enum {} {{", name);
 
         for variant in self.variants.iter() {
