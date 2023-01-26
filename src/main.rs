@@ -157,13 +157,9 @@ impl RustStruct {
                 println!("#[derive(Debug, Clone, Serialize)]");
             } else {
                 println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
-
-                // Workaround for pathfinder spec divergence on the `stateMutability` field
-                if name != "FunctionAbiEntry" {
-                    println!(
-                        "#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
-                    );
-                }
+                println!(
+                    "#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
+                );
             }
         } else {
             println!("#[derive(Debug, Clone)]");
@@ -986,8 +982,8 @@ fn get_schema_fields(
 
                 let field_type = get_rust_type_for_field(prop_value, specs)?;
 
-                let lower_name = name.to_lowercase();
-                let rename = if name == &lower_name {
+                let field_name = to_rust_field_name(name);
+                let rename = if name == &field_name {
                     None
                 } else {
                     Some(name.to_owned())
@@ -1011,7 +1007,7 @@ fn get_schema_fields(
 
                 fields.push(RustField {
                     description: doc_string.map(|value| to_starknet_rs_doc(value, false)),
-                    name: lower_name,
+                    name: field_name,
                     optional: field_optional,
                     type_name,
                     serde_rename: rename,
@@ -1182,6 +1178,17 @@ fn to_starknet_rs_name(name: &str) -> String {
     }
 }
 
+fn to_rust_field_name(name: &str) -> String {
+    let all_upper_letters_regex = Regex::new("^[A-Z]+$").unwrap();
+
+    if all_upper_letters_regex.is_match(name) || name.contains('_') {
+        // Already snake case
+        name.to_ascii_lowercase()
+    } else {
+        camel_to_snake_case(name)
+    }
+}
+
 fn to_starknet_rs_doc(doc: &str, force_period: bool) -> String {
     let mut doc = to_sentence_case(doc);
 
@@ -1226,6 +1233,22 @@ fn to_pascal_case(name: &str) -> String {
         } else {
             character.to_ascii_lowercase()
         });
+    }
+
+    result
+}
+
+fn camel_to_snake_case(name: &str) -> String {
+    let mut result = String::new();
+
+    for character in name.chars() {
+        let is_upper = character.to_ascii_uppercase() == character;
+        if is_upper {
+            result.push('_');
+            result.push(character.to_ascii_lowercase());
+        } else {
+            result.push(character);
+        }
     }
 
     result

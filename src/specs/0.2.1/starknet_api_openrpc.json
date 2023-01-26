@@ -1888,8 +1888,12 @@
             "items": {
               "$ref": "#/components/schemas/TYPED_PARAMETER"
             }
+          },
+          "stateMutability": {
+            "type": "string"
           }
-        }
+        },
+        "required": ["type", "name", "inputs", "outputs"]
       },
       "TYPED_PARAMETER": {
         "type": "object",
