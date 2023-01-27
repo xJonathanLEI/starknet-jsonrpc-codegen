@@ -64,6 +64,7 @@ struct RustStruct {
 }
 
 struct RustEnum {
+    thiserror: bool,
     variants: Vec<RustVariant>,
 }
 
@@ -84,7 +85,8 @@ struct RustField {
 struct RustVariant {
     description: Option<String>,
     name: String,
-    serde_name: String,
+    serde_name: Option<String>,
+    error_text: Option<String>,
 }
 
 struct RustFieldType {
@@ -321,7 +323,14 @@ impl RustStruct {
 
 impl RustEnum {
     pub fn render_stdout(&self, name: &str) {
-        println!("#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]");
+        println!(
+            "#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize{})]",
+            if self.thiserror {
+                ", thiserror::Error"
+            } else {
+                ""
+            }
+        );
         println!("pub enum {} {{", name);
 
         for variant in self.variants.iter() {
@@ -329,7 +338,12 @@ impl RustEnum {
                 print_doc(doc, 4);
             }
 
-            println!("    #[serde(rename = \"{}\")]", variant.serde_name);
+            if let Some(rename) = &variant.serde_name {
+                println!("    #[serde(rename = \"{}\")]", rename);
+            }
+            if let Some(err) = &variant.error_text {
+                println!("    #[error(\"{}\")]", err);
+            }
             println!("    {},", variant.name);
         }
 
@@ -769,12 +783,14 @@ fn resolve_types(
                 }
                 Schema::Primitive(Primitive::String(value)) => match &value.r#enum {
                     Some(variants) => RustTypeKind::Enum(RustEnum {
+                        thiserror: false,
                         variants: variants
                             .iter()
                             .map(|item| RustVariant {
                                 description: None,
                                 name: to_starknet_rs_name(item),
-                                serde_name: item.to_owned(),
+                                serde_name: Some(item.to_owned()),
+                                error_text: None,
                             })
                             .collect(),
                     }),
@@ -797,6 +813,29 @@ fn resolve_types(
             content,
         });
     }
+
+    types.push(RustType {
+        title: Some(String::from("JSON-RPC error codes")),
+        description: None,
+        name: String::from("ErrorCode"),
+        content: RustTypeKind::Enum(RustEnum {
+            thiserror: true,
+            variants: specs
+                .components
+                .errors
+                .iter()
+                .map(|(name, err)| match err {
+                    ErrorType::Error(err) => RustVariant {
+                        description: Some(err.message.clone()),
+                        name: to_starknet_rs_name(name),
+                        serde_name: None,
+                        error_text: Some(err.message.clone()),
+                    },
+                    ErrorType::Reference(_) => todo!("Error redirection not implemented"),
+                })
+                .collect(),
+        }),
+    });
 
     Ok(TypeResolutionResult {
         types,
