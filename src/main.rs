@@ -166,7 +166,7 @@ impl RustStruct {
         } else {
             println!("#[derive(Debug, Clone)]");
         }
-        println!("pub struct {} {{", name);
+        println!("pub struct {name} {{");
 
         for field in self.fields.iter() {
             // Fixed fields only exist in serde impls
@@ -193,7 +193,7 @@ impl RustStruct {
     }
 
     fn render_impl_serialize_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
-        println!("impl Serialize for {} {{", name);
+        println!("impl Serialize for {name} {{");
         println!(
             "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
         );
@@ -245,7 +245,7 @@ impl RustStruct {
     }
 
     fn render_impl_deserialize_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
-        println!("impl<'de> Deserialize<'de> for {} {{", name);
+        println!("impl<'de> Deserialize<'de> for {name} {{");
         println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
 
         if self
@@ -331,7 +331,7 @@ impl RustEnum {
                 ""
             }
         );
-        println!("pub enum {} {{", name);
+        println!("pub enum {name} {{");
 
         for variant in self.variants.iter() {
             if let Some(doc) = &variant.description {
@@ -339,10 +339,10 @@ impl RustEnum {
             }
 
             if let Some(rename) = &variant.serde_name {
-                println!("    #[serde(rename = \"{}\")]", rename);
+                println!("    #[serde(rename = \"{rename}\")]");
             }
             if let Some(err) = &variant.error_text {
-                println!("    #[error(\"{}\")]", err);
+                println!("    #[error(\"{err}\")]");
             }
             println!("    {},", variant.name);
         }
@@ -367,26 +367,24 @@ impl RustField {
         if serde_attrs {
             if self.optional {
                 lines.push(format!(
-                    "{}#[serde(default, skip_serializing_if = \"Option::is_none\")]",
-                    leading_spaces
+                    "{leading_spaces}#[serde(default, skip_serializing_if = \"Option::is_none\")]"
                 ));
             }
             if let Some(serde_rename) = &self.serde_rename {
                 lines.push(format!(
-                    "{}#[serde(rename = \"{}\")]",
-                    leading_spaces, serde_rename
+                    "{leading_spaces}#[serde(rename = \"{serde_rename}\")]"
                 ));
             }
             if self.serde_faltten {
-                lines.push(format!("{}#[serde(flatten)]", leading_spaces));
+                lines.push(format!("{leading_spaces}#[serde(flatten)]"));
             }
             if let Some(serde_as) = &self.serializer {
                 lines.push(match serde_as {
                     SerializerOverride::Serde(serializer) => {
-                        format!("{}#[serde(with = \"{}\")]", leading_spaces, serializer)
+                        format!("{leading_spaces}#[serde(with = \"{serializer}\")]")
                     }
                     SerializerOverride::SerdeAs(serializer) => {
-                        format!("{}#[serde_as(as = \"{}\")]", leading_spaces, serializer)
+                        format!("{leading_spaces}#[serde_as(as = \"{serializer}\")]")
                     }
                 });
             }
@@ -417,7 +415,7 @@ impl SerializerOverride {
             SerializerOverride::Serde(_) => {
                 todo!("Optional transformation of #[serde(with)] not implemented")
             }
-            SerializerOverride::SerdeAs(serde_as) => Self::SerdeAs(format!("Option<{}>", serde_as)),
+            SerializerOverride::SerdeAs(serde_as) => Self::SerdeAs(format!("Option<{serde_as}>")),
         }
     }
 }
@@ -632,8 +630,7 @@ fn main() {
     println!("// Code generated with version:");
     match built_info::GIT_COMMIT_HASH {
         Some(commit_hash) => println!(
-            "//     https://github.com/xJonathanLEI/starknet-jsonrpc-codegen#{}",
-            commit_hash
+            "//     https://github.com/xJonathanLEI/starknet-jsonrpc-codegen#{commit_hash}"
         ),
         None => println!("    <Unable to determine Git commit hash>"),
     }
@@ -642,7 +639,7 @@ fn main() {
     if !profile.ignore_types.is_empty() {
         println!("// These types are ignored from code generation. Implement them manually:");
         for ignored_type in profile.ignore_types.iter() {
-            println!("// - `{}`", ignored_type);
+            println!("// - `{ignored_type}`");
         }
         println!();
     }
@@ -653,7 +650,7 @@ fn main() {
     if !result.not_implemented.is_empty() {
         println!("// Code generation requested but not implemented for these types:");
         for type_name in result.not_implemented.iter() {
-            println!("// - `{}`", type_name);
+            println!("// - `{type_name}`");
         }
         println!();
     }
@@ -771,8 +768,7 @@ fn resolve_types(
                     not_implemented_types.push(name.to_owned());
 
                     eprintln!(
-                        "OneOf enum generation not implemented. Enum not generated for {}",
-                        name
+                        "OneOf enum generation not implemented. Enum not generated for {name}"
                     );
                     continue;
                 }
@@ -1094,7 +1090,7 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
                         todo!("Array wrapper for #[serde(with)] not implemented")
                     }
                     Some(SerializerOverride::SerdeAs(serializer)) => {
-                        Some(SerializerOverride::SerdeAs(format!("Vec<{}>", serializer)))
+                        Some(SerializerOverride::SerdeAs(format!("Vec<{serializer}>")))
                     }
                     None => None,
                 };
@@ -1176,7 +1172,7 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
 fn print_doc(doc: &str, indent_spaces: usize) {
     let prefix = format!("{}/// ", " ".repeat(indent_spaces));
     for line in wrap_lines(doc, prefix.len()) {
-        println!("{}{}", prefix, line);
+        println!("{prefix}{line}");
     }
 }
 
