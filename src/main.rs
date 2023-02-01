@@ -1229,9 +1229,8 @@ fn to_starknet_rs_doc(doc: &str, force_period: bool) -> String {
 
     for (pattern, target) in [
         (Regex::new(r"(?i)\bethereum\b").unwrap(), "Ethereum"),
-        (Regex::new(r"(?i)\bstarknet\b").unwrap(), "StarkNet"),
+        (Regex::new(r"(?i)\bstarknet\b").unwrap(), "Starknet"),
         (Regex::new(r"(?i)\bstarknet\.io\b").unwrap(), "starknet.io"),
-        (Regex::new(r"\bStarknet\b").unwrap(), "L1"),
         (Regex::new(r"\bl1\b").unwrap(), "L1"),
         (Regex::new(r"\bl2\b").unwrap(), "L2"),
         (Regex::new(r"\bunix\b").unwrap(), "Unix"),
