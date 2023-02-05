@@ -367,7 +367,7 @@ impl RustField {
         if serde_attrs {
             if self.optional {
                 lines.push(format!(
-                    "{leading_spaces}#[serde(default, skip_serializing_if = \"Option::is_none\")]"
+                    "{leading_spaces}#[serde(skip_serializing_if = \"Option::is_none\")]"
                 ));
             }
             if let Some(serde_rename) = &self.serde_rename {
