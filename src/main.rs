@@ -441,18 +441,56 @@ fn main() {
             // So it's impossible to dynamically derive them accurately.
             fixed_field_types: vec![
                 RustTypeWithFixedFields {
-                    name: "DeclareTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DECLARE\"",
-                    }],
+                    name: "DeclareTransactionV1",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"DECLARE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&1",
+                        },
+                    ],
                 },
                 RustTypeWithFixedFields {
-                    name: "BroadcastedDeclareTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DECLARE\"",
-                    }],
+                    name: "DeclareTransactionV2",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"DECLARE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&2",
+                        },
+                    ],
+                },
+                RustTypeWithFixedFields {
+                    name: "BroadcastedDeclareTransactionV1",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"DECLARE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&1",
+                        },
+                    ],
+                },
+                RustTypeWithFixedFields {
+                    name: "BroadcastedDeclareTransactionV2",
+                    fields: vec![
+                        FixedField {
+                            name: "type",
+                            value: "\"DECLARE\"",
+                        },
+                        FixedField {
+                            name: "version",
+                            value: "&2",
+                        },
+                    ],
                 },
                 RustTypeWithFixedFields {
                     name: "DeployAccountTransaction",
@@ -1159,6 +1197,10 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
         },
         "CONTRACT_ENTRY_POINT_LIST" => RustFieldType {
             type_name: String::from("Vec<ContractEntryPoint>"),
+            serializer: None,
+        },
+        "LEGACY_CONTRACT_ENTRY_POINT_LIST" => RustFieldType {
+            type_name: String::from("Vec<LegacyContractEntryPoint>"),
             serializer: None,
         },
         "TXN_TYPE" => RustFieldType {

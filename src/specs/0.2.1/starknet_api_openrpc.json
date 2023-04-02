@@ -1208,8 +1208,8 @@
           }
         ]
       },
-      "DECLARE_TXN": {
-        "title": "Declare Contract Transaction",
+      "DECLARE_TXN_V1": {
+        "title": "Version 1 Declare Contract Transaction",
         "allOf": [
           {
             "$ref": "#/components/schemas/COMMON_TXN_PROPERTIES"
@@ -1229,8 +1229,33 @@
           }
         ]
       },
-      "BROADCASTED_DECLARE_TXN": {
-        "title": "mempool representation of a declare transaction",
+      "DECLARE_TXN_V2": {
+        "title": "Version 2 Declare Contract Transaction",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/COMMON_TXN_PROPERTIES"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "class_hash": {
+                "description": "The hash of the declared Sierra class",
+                "$ref": "#/components/schemas/FELT"
+              },
+              "compiled_class_hash": {
+                "description": "The hash of the compiled class",
+                "$ref": "#/components/schemas/FELT"
+              },
+              "sender_address": {
+                "description": "The address of the account contract sending the declaration transaction",
+                "$ref": "#/components/schemas/ADDRESS"
+              }
+            }
+          }
+        ]
+      },
+      "BROADCASTED_DECLARE_TXN_V1": {
+        "title": "mempool representation of a version 1 declare transaction",
         "allOf": [
           {
             "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
@@ -1240,13 +1265,60 @@
             "properties": {
               "contract_class": {
                 "description": "The class to be declared",
-                "$ref": "#/components/schemas/CONTRACT_CLASS"
+                "$ref": "#/components/schemas/LEGACY_CONTRACT_CLASS"
               },
               "sender_address": {
                 "description": "The address of the account contract sending the declaration transaction",
                 "$ref": "#/components/schemas/ADDRESS"
               }
             }
+          }
+        ]
+      },
+      "BROADCASTED_DECLARE_TXN_V2": {
+        "title": "mempool representation of a version 2 declare transaction",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contract_class": {
+                "description": "The class to be declared",
+                "$ref": "#/components/schemas/SIERRA_CONTRACT_CLASS"
+              },
+              "compiled_class_hash": {
+                "description": "The hash of the compiled class",
+                "$ref": "#/components/schemas/FELT"
+              },
+              "sender_address": {
+                "description": "The address of the account contract sending the declaration transaction",
+                "$ref": "#/components/schemas/ADDRESS"
+              }
+            }
+          }
+        ]
+      },
+      "DECLARE_TXN": {
+        "title": "Declare Contract Transaction",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DECLARE_TXN_V1"
+          },
+          {
+            "$ref": "#/components/schemas/DECLARE_TXN_V2"
+          }
+        ]
+      },
+      "BROADCASTED_DECLARE_TXN": {
+        "description": "mempool representation of an declare transaction",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V1"
+          },
+          {
+            "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V2"
           }
         ]
       },
@@ -1724,7 +1796,47 @@
         }
       },
       "CONTRACT_CLASS": {
-        "title": "The definition of a Starknet contract class",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SIERRA_CONTRACT_CLASS"
+          },
+          {
+            "$ref": "#/components/schemas/LEGACY_CONTRACT_CLASS"
+          }
+        ]
+      },
+      "SIERRA_CONTRACT_CLASS": {
+        "title": "The definition of a Sierra Starknet contract class",
+        "type": "object",
+        "properties": {
+          "sierra_program": {
+            "type": "array",
+            "description": "Sierra program bytecode",
+            "items": {
+              "$ref": "#/components/schemas/FELT"
+            }
+          },
+          "entry_points_by_type": {
+            "$ref": "#/components/schemas/ENTRY_POINTS_BY_TYPE"
+          },
+          "abi": {
+            "type": "string",
+            "description": "String representation of the ABI, uploaded by the declarer"
+          },
+          "contract_class_version": {
+            "type": "string",
+            "description": "Sierra contract class version"
+          }
+        },
+        "required": [
+          "sierra_program",
+          "entry_points_by_type",
+          "abi",
+          "contract_class_version"
+        ]
+      },
+      "LEGACY_CONTRACT_CLASS": {
+        "title": "The definition of a legacy (Cairo 0) Starknet contract class",
         "type": "object",
         "properties": {
           "program": {
@@ -1733,7 +1845,7 @@
             "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$"
           },
           "entry_points_by_type": {
-            "$ref": "#/components/schemas/ENTRY_POINTS_BY_TYPE"
+            "$ref": "#/components/schemas/LEGACY_ENTRY_POINTS_BY_TYPE"
           },
           "abi": {
             "$ref": "#/components/schemas/CONTRACT_ABI"
@@ -1755,13 +1867,44 @@
           }
         }
       },
+      "LEGACY_ENTRY_POINTS_BY_TYPE": {
+        "type": "object",
+        "properties": {
+          "CONSTRUCTOR": {
+            "$ref": "#/components/schemas/LEGACY_CONTRACT_ENTRY_POINT_LIST"
+          },
+          "EXTERNAL": {
+            "$ref": "#/components/schemas/LEGACY_CONTRACT_ENTRY_POINT_LIST"
+          },
+          "L1_HANDLER": {
+            "$ref": "#/components/schemas/LEGACY_CONTRACT_ENTRY_POINT_LIST"
+          }
+        }
+      },
       "CONTRACT_ENTRY_POINT_LIST": {
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT"
         }
       },
+      "LEGACY_CONTRACT_ENTRY_POINT_LIST": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/LEGACY_CONTRACT_ENTRY_POINT"
+        }
+      },
       "CONTRACT_ENTRY_POINT": {
+        "type": "object",
+        "properties": {
+          "function_idx": {
+            "type": "integer"
+          },
+          "selector": {
+            "$ref": "#/components/schemas/FELT"
+          }
+        }
+      },
+      "LEGACY_CONTRACT_ENTRY_POINT": {
         "type": "object",
         "properties": {
           "offset": {
