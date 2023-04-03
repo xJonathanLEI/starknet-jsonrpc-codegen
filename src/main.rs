@@ -155,14 +155,8 @@ impl RustStruct {
             println!("#[serde_as]");
         }
         if derive_serde {
-            if name == "EventFilter" {
-                println!("#[derive(Debug, Clone, Serialize)]");
-            } else {
-                println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
-                println!(
-                    "#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
-                );
-            }
+            println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+            println!("#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]");
         } else {
             println!("#[derive(Debug, Clone)]");
         }
