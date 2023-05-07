@@ -951,7 +951,6 @@
       },
       "STATE_UPDATE": {
         "title": "State update",
-        "type": "object",
         "allOf": [
           {
             "title": "Event emitter",
