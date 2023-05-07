@@ -2537,8 +2537,7 @@
               }
             }
           }
-        ],
-        "required": ["Typed parameter"]
+        ]
       },
       "EVENT_ABI_ENTRY": {
         "title": "Event ABI entry",
