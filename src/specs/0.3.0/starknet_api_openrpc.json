@@ -2197,6 +2197,18 @@
           "events"
         ]
       },
+      "PENDING_INVOKE_TXN_RECEIPT": {
+        "title": "Pending Invoke Transaction Receipt",
+        "$ref": "#/components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES"
+      },
+      "PENDING_DECLARE_TXN_RECEIPT": {
+        "title": "Pending Declare Transaction Receipt",
+        "$ref": "#/components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES"
+      },
+      "PENDING_DEPLOY_ACCOUNT_TXN_RECEIPT": {
+        "title": "Pending Deploy Account Transaction Receipt",
+        "$ref": "#/components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES"
+      },
       "PENDING_DEPLOY_TXN_RECEIPT": {
         "title": "Pending deploy Transaction Receipt",
         "allOf": [
@@ -2217,17 +2229,27 @@
           }
         ]
       },
+      "PENDING_L1_HANDLER_TXN_RECEIPT": {
+        "title": "Pending receipt for l1 handler transaction",
+        "$ref": "#/components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES"
+      },
       "PENDING_TXN_RECEIPT": {
         "title": "Pending Transaction Receipt",
         "oneOf": [
           {
-            "title": "Pending deploy transaction receipt",
+            "$ref": "#/components/schemas/PENDING_INVOKE_TXN_RECEIPT"
+          },
+          {
+            "$ref": "#/components/schemas/PENDING_L1_HANDLER_TXN_RECEIPT"
+          },
+          {
+            "$ref": "#/components/schemas/PENDING_DECLARE_TXN_RECEIPT"
+          },
+          {
             "$ref": "#/components/schemas/PENDING_DEPLOY_TXN_RECEIPT"
           },
           {
-            "title": "Pending common receipt properties",
-            "$comment": "Used for pending invoke and declare transaction receipts",
-            "$ref": "#/components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES"
+            "$ref": "#/components/schemas/PENDING_DEPLOY_ACCOUNT_TXN_RECEIPT"
           }
         ]
       },
