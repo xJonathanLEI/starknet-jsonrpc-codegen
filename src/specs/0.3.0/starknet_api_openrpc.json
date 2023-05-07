@@ -1772,31 +1772,6 @@
       "INVOKE_TXN_V0": {
         "title": "Invoke transaction V0",
         "description": "invokes a specific function in the desired contract (not necessarily an account)",
-        "$ref": "#/components/schemas/FUNCTION_CALL"
-      },
-      "INVOKE_TXN_V1": {
-        "title": "Invoke transaction V1",
-        "description": "initiates a transaction from a given account",
-        "type": "object",
-        "properties": {
-          "sender_address": {
-            "title": "sender address",
-            "$ref": "#/components/schemas/ADDRESS"
-          },
-          "calldata": {
-            "type": "array",
-            "title": "calldata",
-            "description": "The data expected by the account's `execute` function (in most usecases, this includes the called contract address and a function selector)",
-            "items": {
-              "$ref": "#/components/schemas/FELT"
-            }
-          }
-        },
-        "required": ["sender_address", "calldata"]
-      },
-      "INVOKE_TXN": {
-        "title": "Invoke transaction",
-        "description": "Initiate a transaction from an account",
         "allOf": [
           {
             "title": "Common transaction properties",
@@ -1815,23 +1790,53 @@
             "required": ["type"]
           },
           {
-            "title": "Invoke transaction properties",
-            "oneOf": [
-              {
-                "title": "Invoke transaction V0",
-                "$ref": "#/components/schemas/INVOKE_TXN_V0"
-              },
-              {
-                "title": "Invoke transaction V1",
-                "$ref": "#/components/schemas/INVOKE_TXN_V1"
-              }
-            ]
+            "$ref": "#/components/schemas/FUNCTION_CALL"
           }
         ]
       },
-      "BROADCASTED_INVOKE_TXN": {
-        "title": "Broadcasted invoke transaction",
-        "description": "mempool representation of an invoke transaction",
+      "INVOKE_TXN_V1": {
+        "title": "Invoke transaction V1",
+        "description": "initiates a transaction from a given account",
+        "allOf": [
+          {
+            "title": "Common transaction properties",
+            "$ref": "#/components/schemas/COMMON_TXN_PROPERTIES"
+          },
+          {
+            "type": "object",
+            "title": "Type",
+            "properties": {
+              "type": {
+                "title": "Type",
+                "type": "string",
+                "enum": ["INVOKE"]
+              }
+            },
+            "required": ["type"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sender_address": {
+                "title": "sender address",
+                "$ref": "#/components/schemas/ADDRESS"
+              },
+              "calldata": {
+                "type": "array",
+                "title": "calldata",
+                "description": "The data expected by the account's `execute` function (in most usecases, this includes the called contract address and a function selector)",
+                "items": {
+                  "$ref": "#/components/schemas/FELT"
+                }
+              }
+            },
+            "required": ["sender_address", "calldata"]
+          }
+        ]
+      },
+      "BROADCASTED_INVOKE_TXN_V0": {
+        "title": "version 0 invoke transaction",
+        "description": "invokes a specific function in the desired contract (not necessarily an account)",
         "allOf": [
           {
             "title": "Broadcasted transaction common properties",
@@ -1850,17 +1855,68 @@
             "required": ["type"]
           },
           {
-            "title": "Invoke transaction properties",
-            "oneOf": [
-              {
-                "title": "Invoke transaction V0",
-                "$ref": "#/components/schemas/INVOKE_TXN_V0"
-              },
-              {
-                "title": "Invoke transaction V1",
-                "$ref": "#/components/schemas/INVOKE_TXN_V1"
+            "$ref": "#/components/schemas/FUNCTION_CALL"
+          }
+        ]
+      },
+      "BROADCASTED_INVOKE_TXN_V1": {
+        "title": "version 1 invoke transaction",
+        "description": "initiates a transaction from a given account",
+        "allOf": [
+          {
+            "title": "Broadcasted transaction common properties",
+            "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
+          },
+          {
+            "title": "Event emitter",
+            "type": "object",
+            "properties": {
+              "type": {
+                "title": "Type",
+                "type": "string",
+                "enum": ["INVOKE"]
               }
-            ]
+            },
+            "required": ["type"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sender_address": {
+                "$ref": "#/components/schemas/ADDRESS"
+              },
+              "calldata": {
+                "type": "array",
+                "description": "The data expected by the account's `execute` function (in most usecases, this includes the called contract address and a function selector)",
+                "items": {
+                  "$ref": "#/components/schemas/FELT"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "INVOKE_TXN": {
+        "title": "Invoke transaction",
+        "description": "Initiate a transaction from an account",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/INVOKE_TXN_V0"
+          },
+          {
+            "$ref": "#/components/schemas/INVOKE_TXN_V1"
+          }
+        ]
+      },
+      "BROADCASTED_INVOKE_TXN": {
+        "title": "Broadcasted invoke transaction",
+        "description": "mempool representation of an invoke transaction",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN_V0"
+          },
+          {
+            "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN_V1"
           }
         ]
       },
