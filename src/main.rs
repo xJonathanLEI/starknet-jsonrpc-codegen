@@ -865,6 +865,10 @@ fn resolve_types(
         }),
     });
 
+    // Sorting the types makes it easier to check diffs in generated code.
+    types.sort_by_key(|item| item.name.to_owned());
+    not_implemented_types.sort();
+
     Ok(TypeResolutionResult {
         types,
         not_implemented: not_implemented_types,
