@@ -1043,9 +1043,9 @@ fn get_schema_fields(
         Schema::Primitive(Primitive::Object(value)) => {
             for (name, prop_value) in value.properties.iter() {
                 // For fields we keep things simple and only use one line
-                let doc_string = match prop_value.title() {
+                let doc_string = match prop_value.description() {
                     Some(text) => Some(text),
-                    None => match prop_value.description() {
+                    None => match prop_value.title() {
                         Some(text) => Some(text),
                         None => prop_value.summary(),
                     },
