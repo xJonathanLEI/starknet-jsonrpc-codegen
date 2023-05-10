@@ -21,6 +21,7 @@ struct Cli {
     spec: SpecVersion,
 }
 
+#[derive(Debug, Clone)]
 struct GenerationProfile {
     version: SpecVersion,
     raw_specs: RawSpecs,
@@ -36,31 +37,37 @@ enum SpecVersion {
     V0_3_0,
 }
 
+#[derive(Debug, Clone)]
 struct RawSpecs {
     main: &'static str,
     write: &'static str,
 }
 
+#[derive(Debug, Clone)]
 struct FixedFieldsOptions {
     fixed_field_types: Vec<RustTypeWithFixedFields>,
 }
 
+#[derive(Debug, Clone)]
 struct RustTypeWithFixedFields {
     name: &'static str,
     fields: Vec<FixedField>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct FixedField {
     name: &'static str,
     value: &'static str,
 }
 
+#[derive(Debug, Clone)]
 struct TypeResolutionResult {
-    types: Vec<RustType>,
+    model_types: Vec<RustType>,
+    request_response_types: Vec<RustType>,
     not_implemented: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
 struct RustType {
     title: Option<String>,
     description: Option<String>,
@@ -69,25 +76,37 @@ struct RustType {
 }
 
 #[allow(unused)]
+#[derive(Debug, Clone)]
 enum RustTypeKind {
     Struct(RustStruct),
     Enum(RustEnum),
     Wrapper(RustWrapper),
+    Unit(RustUnit),
 }
 
+#[derive(Debug, Clone)]
 struct RustStruct {
+    serde_as_array: bool,
     fields: Vec<RustField>,
 }
 
+#[derive(Debug, Clone)]
 struct RustEnum {
     thiserror: bool,
     variants: Vec<RustVariant>,
 }
 
+#[derive(Debug, Clone)]
 struct RustWrapper {
     type_name: String,
 }
 
+#[derive(Debug, Clone)]
+struct RustUnit {
+    serde_as_array: bool,
+}
+
+#[derive(Debug, Clone)]
 struct RustField {
     description: Option<String>,
     name: String,
@@ -99,6 +118,7 @@ struct RustField {
     serializer: Option<SerializerOverride>,
 }
 
+#[derive(Debug, Clone)]
 struct RustVariant {
     description: Option<String>,
     name: String,
@@ -106,17 +126,20 @@ struct RustVariant {
     error_text: Option<String>,
 }
 
+#[derive(Debug, Clone)]
 struct RustFieldType {
     type_name: String,
     serializer: Option<SerializerOverride>,
 }
 
+#[derive(Debug, Clone)]
 enum SerializerOverride {
     Serde(String),
     SerdeAs(String),
 }
 
 #[allow(unused)]
+#[derive(Debug, Clone)]
 enum FlattenOption {
     All,
     Selected(Vec<String>),
@@ -189,7 +212,8 @@ impl RustType {
     pub fn render_serde_stdout(&self) {
         match &self.content {
             RustTypeKind::Struct(content) => content.render_serde_stdout(&self.name),
-            _ => todo!("serde blocks only implemented for structs"),
+            RustTypeKind::Unit(content) => content.render_serde_stdout(&self.name),
+            _ => todo!("serde blocks only implemented for structs and unit"),
         }
     }
 
@@ -198,6 +222,7 @@ impl RustType {
             RustTypeKind::Struct(content) => content.need_custom_serde(),
             RustTypeKind::Enum(content) => content.need_custom_serde(),
             RustTypeKind::Wrapper(content) => content.need_custom_serde(),
+            RustTypeKind::Unit(content) => content.need_custom_serde(),
         }
     }
 }
@@ -208,6 +233,7 @@ impl RustTypeKind {
             Self::Struct(value) => value.render_stdout(name),
             Self::Enum(value) => value.render_stdout(name),
             Self::Wrapper(value) => value.render_stdout(name),
+            Self::Unit(value) => value.render_stdout(name),
         }
     }
 }
@@ -252,10 +278,72 @@ impl RustStruct {
     }
 
     pub fn need_custom_serde(&self) -> bool {
-        self.fields.iter().any(|field| field.fixed.is_some())
+        self.serde_as_array || self.fields.iter().any(|field| field.fixed.is_some())
     }
 
     fn render_impl_serialize_stdout(&self, name: &str) {
+        if self.serde_as_array {
+            self.render_impl_array_serialize_stdout(name);
+        } else {
+            self.render_impl_tagged_serialize_stdout(name);
+        }
+    }
+
+    fn render_impl_deserialize_stdout(&self, name: &str) {
+        if self.serde_as_array {
+            self.render_impl_array_deserialize_stdout(name);
+        } else {
+            self.render_impl_tagged_deserialize_stdout(name);
+        }
+    }
+
+    fn render_impl_array_serialize_stdout(&self, name: &str) {
+        println!("impl Serialize for {name} {{");
+        println!(
+            "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
+        );
+
+        for (ind_field, field) in self.fields.iter().enumerate() {
+            if field.serializer.is_some() {
+                println!("        #[serde_as]");
+            }
+
+            println!("        #[derive(Serialize)]");
+            println!("        #[serde(transparent)]");
+            println!("        struct Field{}<'a> {{", ind_field);
+            for line in field.def_lines(12, true, true).iter() {
+                println!("{line}");
+            }
+            println!("        }}");
+            println!();
+        }
+
+        println!("        use serde::ser::SerializeSeq;");
+        println!();
+        println!("        let mut seq = serializer.serialize_seq(None)?;");
+        println!();
+
+        for (ind_field, field) in self.fields.iter().enumerate() {
+            if field.name.len() > 5 {
+                println!("        seq.serialize_element(&Field{} {{", ind_field);
+                println!("            {}: &self.{},", field.name, field.name);
+                println!("        }})?;");
+            } else {
+                println!(
+                    "        seq.serialize_element(&Field{} {{ {}: &self.{} }})?;",
+                    ind_field, field.name, field.name
+                );
+            }
+        }
+
+        println!();
+        println!("        seq.end()");
+
+        println!("    }}");
+        println!("}}");
+    }
+
+    fn render_impl_tagged_serialize_stdout(&self, name: &str) {
         println!("impl Serialize for {name} {{");
         println!(
             "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
@@ -307,7 +395,60 @@ impl RustStruct {
         println!("}}");
     }
 
-    fn render_impl_deserialize_stdout(&self, name: &str) {
+    fn render_impl_array_deserialize_stdout(&self, name: &str) {
+        println!("impl<'de> Deserialize<'de> for {name} {{");
+        println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
+
+        for (ind_field, field) in self.fields.iter().enumerate() {
+            if field.serializer.is_some() {
+                println!("        #[serde_as]");
+            }
+
+            println!("        #[derive(Deserialize)]");
+            println!("        #[serde(transparent)]");
+            println!("        struct Field{} {{", ind_field);
+            for line in field.def_lines(12, true, false).iter() {
+                println!("{line}");
+            }
+            println!("        }}");
+            println!();
+        }
+
+        println!(
+            "        let mut elements = Vec::<serde_json::Value>::deserialize(deserializer)?;"
+        );
+        println!();
+
+        for (ind_field, _) in self.fields.iter().enumerate().rev() {
+            println!(
+                "        let field{} = serde_json::from_value::<Field{}>(",
+                ind_field, ind_field
+            );
+            println!("            elements");
+            println!("                .pop()");
+            println!("                .ok_or_else(|| serde::de::Error::custom(\"invalid sequence length\"))?,");
+            println!("        )");
+            println!("        .map_err(|err| serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err)))?;");
+        }
+
+        println!();
+
+        println!("        Ok(Self {{");
+
+        for (ind_field, field) in self.fields.iter().enumerate() {
+            println!(
+                "            {}: field{}.{},",
+                field.name, ind_field, field.name
+            );
+        }
+
+        println!("        }})");
+
+        println!("    }}");
+        println!("}}");
+    }
+
+    fn render_impl_tagged_deserialize_stdout(&self, name: &str) {
         println!("impl<'de> Deserialize<'de> for {name} {{");
         println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
 
@@ -425,6 +566,56 @@ impl RustWrapper {
 
     pub fn need_custom_serde(&self) -> bool {
         false
+    }
+}
+
+impl RustUnit {
+    pub fn render_stdout(&self, name: &str) {
+        if self.need_custom_serde() {
+            println!("#[derive(Debug, Clone)]");
+        } else {
+            println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+        }
+        println!("pub struct {};", name);
+    }
+
+    pub fn render_serde_stdout(&self, name: &str) {
+        self.render_impl_serialize_stdout(name);
+        println!();
+        self.render_impl_deserialize_stdout(name);
+    }
+
+    pub fn need_custom_serde(&self) -> bool {
+        self.serde_as_array
+    }
+
+    fn render_impl_serialize_stdout(&self, name: &str) {
+        println!("impl Serialize for {name} {{");
+        println!(
+            "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
+        );
+
+        println!("        use serde::ser::SerializeSeq;");
+        println!();
+        println!("        let seq = serializer.serialize_seq(Some(0))?;");
+        println!("        seq.end()");
+
+        println!("    }}");
+        println!("}}");
+    }
+
+    fn render_impl_deserialize_stdout(&self, name: &str) {
+        println!("impl<'de> Deserialize<'de> for {name} {{");
+        println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
+
+        println!("        let elements = Vec::<()>::deserialize(deserializer)?;");
+        println!("        if !elements.is_empty() {{");
+        println!("            return Err(serde::de::Error::custom(\"invalid sequence length\"));");
+        println!("        }}");
+        println!("        Ok(Self)");
+
+        println!("    }}");
+        println!("}}");
     }
 }
 
@@ -1061,7 +1252,11 @@ fn main() {
 
     let mut manual_serde_types = vec![];
 
-    for rust_type in result.types.iter() {
+    for rust_type in result
+        .model_types
+        .iter()
+        .chain(result.request_response_types.iter())
+    {
         if rust_type.need_custom_serde() {
             manual_serde_types.push(rust_type);
         }
@@ -1087,6 +1282,7 @@ fn resolve_types(
     fixed_fields: &FixedFieldsOptions,
 ) -> Result<TypeResolutionResult> {
     let mut types = vec![];
+    let mut req_types: Vec<RustType> = vec![];
     let mut not_implemented_types = vec![];
 
     let flatten_only_types = get_flatten_only_schemas(specs, flatten_option);
@@ -1114,53 +1310,13 @@ fn resolve_types(
             continue;
         }
 
-        let mut content = {
-            match entity {
-                Schema::Ref(reference) => {
-                    let mut fields = vec![];
-                    let redirected_schema = specs
-                        .components
-                        .schemas
-                        .get(reference.name())
-                        .ok_or_else(|| anyhow::anyhow!(""))?;
-                    get_schema_fields(redirected_schema, specs, &mut fields, flatten_option)?;
-                    RustTypeKind::Struct(RustStruct { fields })
-                }
-                Schema::OneOf(_) => {
-                    not_implemented_types.push(name.to_owned());
+        let mut content = match schema_to_rust_type_kind(specs, entity, flatten_option)? {
+            Some(content) => content,
+            None => {
+                not_implemented_types.push(name.to_owned());
 
-                    eprintln!(
-                        "OneOf enum generation not implemented. Enum not generated for {name}"
-                    );
-                    continue;
-                }
-                Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
-                    let mut fields = vec![];
-                    get_schema_fields(entity, specs, &mut fields, flatten_option)?;
-                    RustTypeKind::Struct(RustStruct { fields })
-                }
-                Schema::Primitive(Primitive::String(value)) => match &value.r#enum {
-                    Some(variants) => RustTypeKind::Enum(RustEnum {
-                        thiserror: false,
-                        variants: variants
-                            .iter()
-                            .map(|item| RustVariant {
-                                description: None,
-                                name: to_starknet_rs_name(item),
-                                serde_name: Some(item.to_owned()),
-                                error_text: None,
-                            })
-                            .collect(),
-                    }),
-                    None => {
-                        anyhow::bail!(
-                            "Unexpected non-enum string type when generating struct/enum"
-                        );
-                    }
-                },
-                _ => {
-                    anyhow::bail!("Unexpected schema type when generating struct/enum");
-                }
+                eprintln!("OneOf enum generation not implemented. Enum not generated for {name}");
+                continue;
             }
         };
 
@@ -1201,13 +1357,109 @@ fn resolve_types(
         }),
     });
 
+    // Request/response types
+    for method in specs.methods.iter() {
+        let mut request_fields = vec![];
+
+        for param in method.params.iter() {
+            let field_type = get_rust_type_for_field(&param.schema, specs)?;
+
+            request_fields.push(RustField {
+                description: param.description.clone(),
+                name: param.name.clone(),
+                optional: !param.required,
+                fixed: None,
+                type_name: field_type.type_name,
+                serde_rename: None,
+                serde_faltten: false,
+                serializer: field_type.serializer,
+            });
+        }
+
+        let request_type = RustType {
+            title: Some(format!("Request for method {}", method.name)),
+            description: None,
+            name: format!(
+                "{}Request",
+                to_starknet_rs_name(&camel_to_snake_case(
+                    method.name.trim_start_matches("starknet_")
+                ))
+            ),
+            content: if request_fields.is_empty() {
+                RustTypeKind::Unit(RustUnit {
+                    serde_as_array: true,
+                })
+            } else {
+                RustTypeKind::Struct(RustStruct {
+                    serde_as_array: true,
+                    fields: request_fields,
+                })
+            },
+        };
+
+        req_types.push(request_type);
+    }
+
     // Sorting the types makes it easier to check diffs in generated code.
     types.sort_by_key(|item| item.name.to_owned());
+    req_types.sort_by_key(|item| item.name.to_owned());
     not_implemented_types.sort();
 
     Ok(TypeResolutionResult {
-        types,
+        model_types: types,
+        request_response_types: req_types,
         not_implemented: not_implemented_types,
+    })
+}
+
+fn schema_to_rust_type_kind(
+    specs: &Specification,
+    entity: &Schema,
+    flatten_option: &FlattenOption,
+) -> Result<Option<RustTypeKind>> {
+    Ok(match entity {
+        Schema::Ref(reference) => {
+            let mut fields = vec![];
+            let redirected_schema = specs
+                .components
+                .schemas
+                .get(reference.name())
+                .ok_or_else(|| anyhow::anyhow!(""))?;
+            get_schema_fields(redirected_schema, specs, &mut fields, flatten_option)?;
+            Some(RustTypeKind::Struct(RustStruct {
+                serde_as_array: false,
+                fields,
+            }))
+        }
+        Schema::OneOf(_) => None,
+        Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
+            let mut fields = vec![];
+            get_schema_fields(entity, specs, &mut fields, flatten_option)?;
+            Some(RustTypeKind::Struct(RustStruct {
+                serde_as_array: false,
+                fields,
+            }))
+        }
+        Schema::Primitive(Primitive::String(value)) => match &value.r#enum {
+            Some(variants) => Some(RustTypeKind::Enum(RustEnum {
+                thiserror: false,
+                variants: variants
+                    .iter()
+                    .map(|item| RustVariant {
+                        description: None,
+                        name: to_starknet_rs_name(item),
+                        serde_name: Some(item.to_owned()),
+                        error_text: None,
+                    })
+                    .collect(),
+            })),
+            None => {
+                anyhow::bail!("Unexpected non-enum string type when generating struct/enum");
+            }
+        },
+        _ => {
+            anyhow::bail!("Unexpected schema type when generating struct/enum");
+        }
     })
 }
 
