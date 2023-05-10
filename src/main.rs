@@ -26,7 +26,7 @@ struct GenerationProfile {
     raw_specs: RawSpecs,
     flatten_options: FlattenOption,
     ignore_types: Vec<String>,
-    fixed_field_types: Vec<RustTypeWithFixedFields>,
+    fixed_field_types: FixedFieldsOptions,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +39,10 @@ enum SpecVersion {
 struct RawSpecs {
     main: &'static str,
     write: &'static str,
+}
+
+struct FixedFieldsOptions {
+    fixed_field_types: Vec<RustTypeWithFixedFields>,
 }
 
 struct RustTypeWithFixedFields {
@@ -88,6 +92,7 @@ struct RustField {
     description: Option<String>,
     name: String,
     optional: bool,
+    fixed: Option<FixedField>,
     type_name: String,
     serde_rename: Option<String>,
     serde_faltten: bool,
@@ -146,8 +151,23 @@ impl ValueEnum for SpecVersion {
     }
 }
 
+impl FixedFieldsOptions {
+    fn find_fixed_field(&self, type_name: &str, field_name: &str) -> Option<FixedField> {
+        self.fixed_field_types.iter().find_map(|item| {
+            if item.name == type_name {
+                item.fields
+                    .iter()
+                    .find(|field| field.name == field_name)
+                    .cloned()
+            } else {
+                None
+            }
+        })
+    }
+}
+
 impl RustType {
-    pub fn render_stdout(&self, fixed_fields: &[FixedField]) {
+    pub fn render_stdout(&self) {
         match (self.title.as_ref(), self.description.as_ref()) {
             (Some(title), Some(description)) => {
                 print_doc(title, 0);
@@ -163,21 +183,29 @@ impl RustType {
             (None, None) => {}
         }
 
-        self.content.render_stdout(&self.name, fixed_fields);
+        self.content.render_stdout(&self.name);
     }
 
-    pub fn render_serde_stdout(&self, fixed_fields: &[FixedField]) {
+    pub fn render_serde_stdout(&self) {
         match &self.content {
-            RustTypeKind::Struct(content) => content.render_serde_stdout(&self.name, fixed_fields),
+            RustTypeKind::Struct(content) => content.render_serde_stdout(&self.name),
             _ => todo!("serde blocks only implemented for structs"),
+        }
+    }
+
+    pub fn need_custom_serde(&self) -> bool {
+        match &self.content {
+            RustTypeKind::Struct(content) => content.need_custom_serde(),
+            RustTypeKind::Enum(content) => content.need_custom_serde(),
+            RustTypeKind::Wrapper(content) => content.need_custom_serde(),
         }
     }
 }
 
 impl RustTypeKind {
-    pub fn render_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
+    pub fn render_stdout(&self, name: &str) {
         match self {
-            Self::Struct(value) => value.render_stdout(name, fixed_fields),
+            Self::Struct(value) => value.render_stdout(name),
             Self::Enum(value) => value.render_stdout(name),
             Self::Wrapper(value) => value.render_stdout(name),
         }
@@ -185,8 +213,8 @@ impl RustTypeKind {
 }
 
 impl RustStruct {
-    pub fn render_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
-        let derive_serde = fixed_fields.is_empty();
+    pub fn render_stdout(&self, name: &str) {
+        let derive_serde = !self.need_custom_serde();
 
         if derive_serde
             && self
@@ -204,12 +232,7 @@ impl RustStruct {
         }
         println!("pub struct {name} {{");
 
-        for field in self.fields.iter() {
-            // Fixed fields only exist in serde impls
-            if fixed_fields.iter().any(|item| item.name == field.name) {
-                continue;
-            }
-
+        for field in self.fields.iter().filter(|field| field.fixed.is_none()) {
             if let Some(doc) = &field.description {
                 print_doc(doc, 4);
             }
@@ -222,13 +245,17 @@ impl RustStruct {
         println!("}}");
     }
 
-    pub fn render_serde_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
-        self.render_impl_serialize_stdout(name, fixed_fields);
+    pub fn render_serde_stdout(&self, name: &str) {
+        self.render_impl_serialize_stdout(name);
         println!();
-        self.render_impl_deserialize_stdout(name, fixed_fields);
+        self.render_impl_deserialize_stdout(name);
     }
 
-    fn render_impl_serialize_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
+    pub fn need_custom_serde(&self) -> bool {
+        self.fields.iter().any(|field| field.fixed.is_some())
+    }
+
+    fn render_impl_serialize_stdout(&self, name: &str) {
         println!("impl Serialize for {name} {{");
         println!(
             "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
@@ -256,7 +283,7 @@ impl RustStruct {
         println!("        let tagged = Tagged {{");
 
         for field in self.fields.iter() {
-            match fixed_fields.iter().find(|item| item.name == field.name) {
+            match &field.fixed {
                 Some(fixed_field) => {
                     println!(
                         "            {}: {},",
@@ -280,7 +307,7 @@ impl RustStruct {
         println!("}}");
     }
 
-    fn render_impl_deserialize_stdout(&self, name: &str, fixed_fields: &[FixedField]) {
+    fn render_impl_deserialize_stdout(&self, name: &str) {
         println!("impl<'de> Deserialize<'de> for {name} {{");
         println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
 
@@ -299,11 +326,12 @@ impl RustStruct {
         println!("        struct Tagged {{");
 
         for field in self.fields.iter() {
-            let lines = match fixed_fields.iter().find(|item| item.name == field.name) {
+            let lines = match &field.fixed {
                 Some(_) => RustField {
                     description: field.description.clone(),
                     name: field.name.clone(),
                     optional: true,
+                    fixed: None,
                     type_name: format!("Option<{}>", field.type_name),
                     serde_rename: field.serde_rename.clone(),
                     serde_faltten: field.serde_faltten,
@@ -323,7 +351,7 @@ impl RustStruct {
         println!("        let tagged = Tagged::deserialize(deserializer)?;");
         println!();
 
-        for fixed_field in fixed_fields.iter() {
+        for fixed_field in self.fields.iter().filter_map(|field| field.fixed.as_ref()) {
             println!(
                 "        if let Some(tag_field) = &tagged.{} {{",
                 escape_name(fixed_field.name)
@@ -340,14 +368,12 @@ impl RustStruct {
 
         println!("        Ok(Self {{");
 
-        for field in self.fields.iter() {
-            if !fixed_fields.iter().any(|item| item.name == field.name) {
-                println!(
-                    "            {}: tagged.{},",
-                    escape_name(&field.name),
-                    escape_name(&field.name)
-                );
-            }
+        for field in self.fields.iter().filter(|field| field.fixed.is_none()) {
+            println!(
+                "            {}: tagged.{},",
+                escape_name(&field.name),
+                escape_name(&field.name)
+            );
         }
 
         println!("        }})");
@@ -385,12 +411,20 @@ impl RustEnum {
 
         println!("}}");
     }
+
+    pub fn need_custom_serde(&self) -> bool {
+        false
+    }
 }
 
 impl RustWrapper {
     pub fn render_stdout(&self, name: &str) {
         println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
         println!("pub struct {}(pub {});", name, self.type_name);
+    }
+
+    pub fn need_custom_serde(&self) -> bool {
+        false
     }
 }
 
@@ -471,7 +505,9 @@ fn main() {
                 String::from("BLOCK_BODY_WITH_TX_HASHES"),
             ]),
             ignore_types: vec![],
-            fixed_field_types: vec![],
+            fixed_field_types: FixedFieldsOptions {
+                fixed_field_types: vec![],
+            },
         },
         GenerationProfile {
             version: SpecVersion::V0_2_1,
@@ -497,217 +533,219 @@ fn main() {
             ignore_types: vec![],
             // We need these because they're implied by the network but not explicitly specified.
             // So it's impossible to dynamically derive them accurately.
-            fixed_field_types: vec![
-                RustTypeWithFixedFields {
-                    name: "DeclareTransactionV1",
-                    fields: vec![
-                        FixedField {
+            fixed_field_types: FixedFieldsOptions {
+                fixed_field_types: vec![
+                    RustTypeWithFixedFields {
+                        name: "DeclareTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeclareTransactionV2",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&2",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedDeclareTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedDeclareTransactionV2",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&2",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployAccountTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeclareTransactionV2",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedDeployAccountTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&2",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedDeclareTransactionV1",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedDeclareTransactionV2",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DEPLOY\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedDeployTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&2",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployAccountTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedDeployAccountTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedDeployTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "InvokeTransactionV0",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DEPLOY\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "InvokeTransactionV0",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&0",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "InvokeTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedInvokeTransactionV0",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&0",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedInvokeTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "L1HandlerTransaction",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"L1_HANDLER\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "InvokeTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&0",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "InvokeTransactionV1",
-                    fields: vec![
-                        FixedField {
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeclareTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DECLARE\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployAccountTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DEPLOY\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "L1HandlerTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"L1_HANDLER\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingInvokeTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedInvokeTransactionV0",
-                    fields: vec![
-                        FixedField {
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingDeclareTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&0",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedInvokeTransactionV1",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DECLARE\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingDeployAccountTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "L1HandlerTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"L1_HANDLER\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "InvokeTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"INVOKE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeclareTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DECLARE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployAccountTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "L1HandlerTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"L1_HANDLER\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingInvokeTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"INVOKE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingDeclareTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DECLARE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingDeployAccountTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingDeployTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingL1HandlerTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"L1_HANDLER\"",
-                    }],
-                },
-            ],
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingDeployTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DEPLOY\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingL1HandlerTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"L1_HANDLER\"",
+                        }],
+                    },
+                ],
+            },
         },
         GenerationProfile {
             version: SpecVersion::V0_3_0,
@@ -733,210 +771,212 @@ fn main() {
             ignore_types: vec![],
             // We need these because they're implied by the network but not explicitly specified.
             // So it's impossible to dynamically derive them accurately.
-            fixed_field_types: vec![
-                RustTypeWithFixedFields {
-                    name: "DeclareTransactionV1",
-                    fields: vec![
-                        FixedField {
+            fixed_field_types: FixedFieldsOptions {
+                fixed_field_types: vec![
+                    RustTypeWithFixedFields {
+                        name: "DeclareTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeclareTransactionV2",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&2",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedDeclareTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedDeclareTransactionV2",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&2",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployAccountTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeclareTransactionV2",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedDeployAccountTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&2",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedDeclareTransactionV1",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedDeclareTransactionV2",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DEPLOY\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "InvokeTransactionV0",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&0",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "InvokeTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedInvokeTransactionV0",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&0",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "BroadcastedInvokeTransactionV1",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"INVOKE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "L1HandlerTransaction",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"DECLARE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&2",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployAccountTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedDeployAccountTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "InvokeTransactionV0",
-                    fields: vec![
-                        FixedField {
+                            value: "\"L1_HANDLER\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "InvokeTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&0",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "InvokeTransactionV1",
-                    fields: vec![
-                        FixedField {
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeclareTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DECLARE\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployAccountTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "DeployTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DEPLOY\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "L1HandlerTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"L1_HANDLER\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingInvokeTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedInvokeTransactionV0",
-                    fields: vec![
-                        FixedField {
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingDeclareTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&0",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "BroadcastedInvokeTransactionV1",
-                    fields: vec![
-                        FixedField {
+                            value: "\"DECLARE\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingDeployAccountTransactionReceipt",
+                        fields: vec![FixedField {
                             name: "type",
-                            value: "\"INVOKE\"",
-                        },
-                        FixedField {
-                            name: "version",
-                            value: "&1",
-                        },
-                    ],
-                },
-                RustTypeWithFixedFields {
-                    name: "L1HandlerTransaction",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"L1_HANDLER\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "InvokeTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"INVOKE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeclareTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DECLARE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployAccountTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "DeployTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "L1HandlerTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"L1_HANDLER\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingInvokeTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"INVOKE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingDeclareTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DECLARE\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingDeployAccountTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY_ACCOUNT\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingDeployTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"DEPLOY\"",
-                    }],
-                },
-                RustTypeWithFixedFields {
-                    name: "PendingL1HandlerTransactionReceipt",
-                    fields: vec![FixedField {
-                        name: "type",
-                        value: "\"L1_HANDLER\"",
-                    }],
-                },
-            ],
+                            value: "\"DEPLOY_ACCOUNT\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingDeployTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"DEPLOY\"",
+                        }],
+                    },
+                    RustTypeWithFixedFields {
+                        name: "PendingL1HandlerTransactionReceipt",
+                        fields: vec![FixedField {
+                            name: "type",
+                            value: "\"L1_HANDLER\"",
+                        }],
+                    },
+                ],
+            },
         },
     ];
 
@@ -986,8 +1026,13 @@ fn main() {
         println!();
     }
 
-    let result = resolve_types(&specs, &profile.flatten_options, &profile.ignore_types)
-        .expect("Failed to resolve types");
+    let result = resolve_types(
+        &specs,
+        &profile.flatten_options,
+        &profile.ignore_types,
+        &profile.fixed_field_types,
+    )
+    .expect("Failed to resolve types");
 
     if !result.not_implemented.is_empty() {
         println!("// Code generation requested but not implemented for these types:");
@@ -1016,44 +1061,18 @@ fn main() {
 
     let mut manual_serde_types = vec![];
 
-    for (ind, rust_type) in result.types.iter().enumerate() {
-        let fixed_fields_for_type = profile
-            .fixed_field_types
-            .iter()
-            .find_map(|item| {
-                if item.name == rust_type.name {
-                    Some(item.fields.clone())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_default();
-
-        if !fixed_fields_for_type.is_empty() {
+    for rust_type in result.types.iter() {
+        if rust_type.need_custom_serde() {
             manual_serde_types.push(rust_type);
         }
 
-        rust_type.render_stdout(&fixed_fields_for_type);
+        rust_type.render_stdout();
 
-        if ind != result.types.len() - 1 || !manual_serde_types.is_empty() {
-            println!();
-        }
+        println!();
     }
 
     for (ind, rust_type) in manual_serde_types.iter().enumerate() {
-        let fixed_fields_for_type = profile
-            .fixed_field_types
-            .iter()
-            .find_map(|item| {
-                if item.name == rust_type.name {
-                    Some(item.fields.clone())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_default();
-
-        rust_type.render_serde_stdout(&fixed_fields_for_type);
+        rust_type.render_serde_stdout();
 
         if ind != manual_serde_types.len() - 1 {
             println!();
@@ -1065,6 +1084,7 @@ fn resolve_types(
     specs: &Specification,
     flatten_option: &FlattenOption,
     ignore_types: &[String],
+    fixed_fields: &FixedFieldsOptions,
 ) -> Result<TypeResolutionResult> {
     let mut types = vec![];
     let mut not_implemented_types = vec![];
@@ -1094,7 +1114,7 @@ fn resolve_types(
             continue;
         }
 
-        let content = {
+        let mut content = {
             match entity {
                 Schema::Ref(reference) => {
                     let mut fields = vec![];
@@ -1143,6 +1163,12 @@ fn resolve_types(
                 }
             }
         };
+
+        if let RustTypeKind::Struct(inner) = &mut content {
+            for field in inner.fields.iter_mut() {
+                field.fixed = fixed_fields.find_fixed_field(&rusty_name, &field.name);
+            }
+        }
 
         types.push(RustType {
             title: title.map(|value| to_starknet_rs_doc(value, true)),
@@ -1336,6 +1362,7 @@ fn get_schema_fields(
                                 description: reference.description.to_owned(),
                                 name: reference.name().to_lowercase(),
                                 optional: false,
+                                fixed: None,
                                 type_name: to_starknet_rs_name(reference.name()),
                                 serde_rename: None,
                                 serde_faltten: true,
@@ -1390,6 +1417,7 @@ fn get_schema_fields(
                     description: doc_string.map(|value| to_starknet_rs_doc(value, false)),
                     name: field_name,
                     optional: field_optional,
+                    fixed: None,
                     type_name,
                     serde_rename: rename,
                     serde_faltten: false,
