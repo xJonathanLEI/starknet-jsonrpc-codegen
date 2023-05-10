@@ -1620,7 +1620,12 @@
                 "$ref": "#/components/schemas/FELT"
               }
             },
-            "required": ["type", "contract_class", "sender_address"]
+            "required": [
+              "type",
+              "contract_class",
+              "sender_address",
+              "compiled_class_hash"
+            ]
           }
         ]
       },
