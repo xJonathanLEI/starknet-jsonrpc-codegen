@@ -111,6 +111,7 @@ enum SerializerOverride {
     SerdeAs(String),
 }
 
+#[allow(unused)]
 enum FlattenOption {
     All,
     Selected(Vec<String>),
@@ -478,7 +479,21 @@ fn main() {
                 main: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.2.1/starknet_write_api.json"),
             },
-            flatten_options: FlattenOption::All,
+            flatten_options: FlattenOption::Selected(vec![
+                String::from("FUNCTION_CALL"),
+                String::from("EVENT"),
+                String::from("TYPED_PARAMETER"),
+                String::from("BLOCK_BODY_WITH_TXS"),
+                String::from("BLOCK_BODY_WITH_TX_HASHES"),
+                String::from("BLOCK_HEADER"),
+                String::from("BROADCASTED_TXN_COMMON_PROPERTIES"),
+                String::from("DEPLOY_ACCOUNT_TXN_PROPERTIES"),
+                String::from("DEPLOY_TXN_PROPERTIES"),
+                String::from("EVENT_CONTENT"),
+                String::from("PENDING_COMMON_RECEIPT_PROPERTIES"),
+                String::from("COMMON_TXN_PROPERTIES"),
+                String::from("COMMON_RECEIPT_PROPERTIES"),
+            ]),
             ignore_types: vec![],
             // We need these because they're implied by the network but not explicitly specified.
             // So it's impossible to dynamically derive them accurately.
@@ -700,7 +715,21 @@ fn main() {
                 main: include_str!("./specs/0.3.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.3.0/starknet_write_api.json"),
             },
-            flatten_options: FlattenOption::All,
+            flatten_options: FlattenOption::Selected(vec![
+                String::from("FUNCTION_CALL"),
+                String::from("EVENT"),
+                String::from("TYPED_PARAMETER"),
+                String::from("BLOCK_BODY_WITH_TXS"),
+                String::from("BLOCK_BODY_WITH_TX_HASHES"),
+                String::from("BLOCK_HEADER"),
+                String::from("BROADCASTED_TXN_COMMON_PROPERTIES"),
+                String::from("DEPLOY_ACCOUNT_TXN_PROPERTIES"),
+                String::from("DEPLOY_TXN_PROPERTIES"),
+                String::from("EVENT_CONTENT"),
+                String::from("PENDING_COMMON_RECEIPT_PROPERTIES"),
+                String::from("COMMON_TXN_PROPERTIES"),
+                String::from("COMMON_RECEIPT_PROPERTIES"),
+            ]),
             ignore_types: vec![],
             // We need these because they're implied by the network but not explicitly specified.
             // So it's impossible to dynamically derive them accurately.
