@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Jonathan LEI <me@xjonathan.dev>"]
 edition = "2021"
 description = """
-Tool for generating the StarkNet JSON-RPC code used in starknet-rs
+Tool for generating the Starknet JSON-RPC code used in starknet-rs
 """
 build = "src/build.rs"
 
