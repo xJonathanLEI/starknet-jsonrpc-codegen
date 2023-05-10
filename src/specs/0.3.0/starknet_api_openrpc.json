@@ -628,16 +628,7 @@
           "required": true,
           "schema": {
             "title": "Event emitter",
-            "allOf": [
-              {
-                "title": "Event filter",
-                "$ref": "#/components/schemas/EVENT_FILTER"
-              },
-              {
-                "title": "Result page request",
-                "$ref": "#/components/schemas/RESULT_PAGE_REQUEST"
-              }
-            ]
+            "$ref": "#/components/schemas/EVENT_FILTER_WITH_PAGE"
           }
         }
       ],
@@ -708,6 +699,18 @@
   "components": {
     "contentDescriptors": {},
     "schemas": {
+      "EVENT_FILTER_WITH_PAGE": {
+        "allOf": [
+          {
+            "title": "Event filter",
+            "$ref": "#/components/schemas/EVENT_FILTER"
+          },
+          {
+            "title": "Result page request",
+            "$ref": "#/components/schemas/RESULT_PAGE_REQUEST"
+          }
+        ]
+      },
       "EVENTS_CHUNK": {
         "title": "Events chunk",
         "type": "object",
