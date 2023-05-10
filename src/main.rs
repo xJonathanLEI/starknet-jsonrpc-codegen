@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, str::FromStr};
 
 use anyhow::Result;
+use clap::{Parser, ValueEnum};
 use regex::Regex;
 
 use crate::spec::*;
@@ -13,7 +14,12 @@ mod built_info {
 
 const MAX_LINE_LENGTH: usize = 100;
 
-const TARGET_VERSION: SpecVersion = SpecVersion::V0_2_1;
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
+struct Cli {
+    #[clap(long, env, help = "Version of the specification")]
+    spec: SpecVersion,
+}
 
 struct GenerationProfile {
     version: SpecVersion,
@@ -23,7 +29,7 @@ struct GenerationProfile {
     fixed_field_types: Vec<RustTypeWithFixedFields>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SpecVersion {
     V0_1_0,
     V0_2_1,
@@ -103,6 +109,35 @@ enum SerializerOverride {
 enum FlattenOption {
     All,
     Selected(Vec<String>),
+}
+
+impl FromStr for SpecVersion {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(match s {
+            "0.1.0" | "v0.1.0" => Self::V0_1_0,
+            "0.2.1" | "v0.2.1" => Self::V0_2_1,
+            "0.3.0" | "v0.3.0" => Self::V0_3_0,
+            _ => anyhow::bail!("unknown spec version: {}", s),
+        })
+    }
+}
+
+impl ValueEnum for SpecVersion {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::V0_1_0, Self::V0_2_1, Self::V0_3_0]
+    }
+
+    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
+        use clap::builder::PossibleValue;
+
+        match self {
+            Self::V0_1_0 => Some(PossibleValue::new("0.1.0")),
+            Self::V0_2_1 => Some(PossibleValue::new("0.2.1")),
+            Self::V0_3_0 => Some(PossibleValue::new("0.3.0")),
+        }
+    }
 }
 
 impl RustType {
@@ -416,6 +451,8 @@ impl SerializerOverride {
 }
 
 fn main() {
+    let cli = Cli::parse();
+
     let profiles: [GenerationProfile; 3] = [
         GenerationProfile {
             version: SpecVersion::V0_1_0,
@@ -862,7 +899,7 @@ fn main() {
 
     let profile = profiles
         .into_iter()
-        .find(|profile| profile.version == TARGET_VERSION)
+        .find(|profile| profile.version == cli.spec)
         .expect("Unable to find profile");
 
     let specs: Specification =

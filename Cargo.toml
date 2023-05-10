@@ -10,6 +10,7 @@ build = "src/build.rs"
 
 [dependencies]
 anyhow = "1.0.66"
+clap = { version = "4.2.7", features = ["derive", "env"] }
 indexmap = { version = "1.9.2", features = ["serde"] }
 regex = "1.7.0"
 serde = { version = "1.0.149", features = ["derive"] }
