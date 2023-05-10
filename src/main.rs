@@ -324,7 +324,7 @@ impl RustStruct {
             );
             println!("            if tag_field != {} {{", fixed_field.value);
             println!(
-                "                return Err(serde::de::Error::custom(\"Invalid `{}` value\"));",
+                "                return Err(serde::de::Error::custom(\"invalid `{}` value\"));",
                 fixed_field.name
             );
             println!("            }}");
