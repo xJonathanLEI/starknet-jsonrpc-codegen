@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Specification {
     pub openrpc: String,
@@ -11,7 +11,7 @@ pub struct Specification {
     pub components: Components,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Info {
     pub version: String,
@@ -19,7 +19,7 @@ pub struct Info {
     pub license: Empty,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Method {
     pub name: String,
@@ -31,7 +31,7 @@ pub struct Method {
     pub errors: Option<Vec<Reference>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Components {
     pub content_descriptors: Empty,
@@ -39,11 +39,11 @@ pub struct Components {
     pub errors: IndexMap<String, ErrorType>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Empty {}
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Param {
     pub name: String,
@@ -53,7 +53,7 @@ pub struct Param {
     pub schema: Schema,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MethodResult {
     pub name: String,
@@ -62,7 +62,7 @@ pub struct MethodResult {
     pub summary: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum Schema {
     Ref(Reference),
@@ -71,7 +71,7 @@ pub enum Schema {
     Primitive(Primitive),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Reference {
     pub title: Option<String>,
@@ -82,7 +82,7 @@ pub struct Reference {
     pub ref_field: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OneOf {
     pub title: Option<String>,
@@ -90,7 +90,7 @@ pub struct OneOf {
     pub one_of: Vec<Schema>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AllOf {
     pub title: Option<String>,
@@ -98,7 +98,7 @@ pub struct AllOf {
     pub all_of: Vec<Schema>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Primitive {
     Array(ArrayPrimitive),
@@ -108,7 +108,7 @@ pub enum Primitive {
     String(StringPrimitive),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ArrayPrimitive {
     pub title: Option<String>,
@@ -116,14 +116,14 @@ pub struct ArrayPrimitive {
     pub items: Box<Schema>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct BooleanPrimitive {
     pub title: Option<String>,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct IntegerPrimitive {
     pub title: Option<String>,
@@ -131,7 +131,7 @@ pub struct IntegerPrimitive {
     pub minimum: Option<i32>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ObjectPrimitive {
     pub title: Option<String>,
@@ -141,7 +141,7 @@ pub struct ObjectPrimitive {
     pub required: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringPrimitive {
     pub title: Option<String>,
@@ -151,14 +151,15 @@ pub struct StringPrimitive {
     pub r#enum: Option<Vec<String>>,
     pub pattern: Option<String>,
 }
-#[derive(Debug, Deserialize)]
+
+#[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum ErrorType {
     Error(Error),
     Reference(Reference),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Error {
     pub code: i64,

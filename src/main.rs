@@ -23,7 +23,7 @@ struct Cli {
 
 struct GenerationProfile {
     version: SpecVersion,
-    raw_specs: &'static str,
+    raw_specs: RawSpecs,
     flatten_options: FlattenOption,
     ignore_types: Vec<String>,
     fixed_field_types: Vec<RustTypeWithFixedFields>,
@@ -34,6 +34,11 @@ enum SpecVersion {
     V0_1_0,
     V0_2_1,
     V0_3_0,
+}
+
+struct RawSpecs {
+    main: &'static str,
+    write: &'static str,
 }
 
 struct RustTypeWithFixedFields {
@@ -456,7 +461,10 @@ fn main() {
     let profiles: [GenerationProfile; 3] = [
         GenerationProfile {
             version: SpecVersion::V0_1_0,
-            raw_specs: include_str!("./specs/0.1.0/starknet_api_openrpc.json"),
+            raw_specs: RawSpecs {
+                main: include_str!("./specs/0.1.0/starknet_api_openrpc.json"),
+                write: include_str!("./specs/0.1.0/starknet_write_api.json"),
+            },
             flatten_options: FlattenOption::Selected(vec![
                 String::from("BLOCK_BODY_WITH_TXS"),
                 String::from("BLOCK_BODY_WITH_TX_HASHES"),
@@ -466,7 +474,10 @@ fn main() {
         },
         GenerationProfile {
             version: SpecVersion::V0_2_1,
-            raw_specs: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
+            raw_specs: RawSpecs {
+                main: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
+                write: include_str!("./specs/0.2.1/starknet_write_api.json"),
+            },
             flatten_options: FlattenOption::All,
             ignore_types: vec![],
             // We need these because they're implied by the network but not explicitly specified.
@@ -685,7 +696,10 @@ fn main() {
         },
         GenerationProfile {
             version: SpecVersion::V0_3_0,
-            raw_specs: include_str!("./specs/0.3.0/starknet_api_openrpc.json"),
+            raw_specs: RawSpecs {
+                main: include_str!("./specs/0.3.0/starknet_api_openrpc.json"),
+                write: include_str!("./specs/0.3.0/starknet_write_api.json"),
+            },
             flatten_options: FlattenOption::All,
             ignore_types: vec![],
             // We need these because they're implied by the network but not explicitly specified.
@@ -902,8 +916,25 @@ fn main() {
         .find(|profile| profile.version == cli.spec)
         .expect("Unable to find profile");
 
-    let specs: Specification =
-        serde_json::from_str(profile.raw_specs).expect("Failed to parse specification");
+    let mut specs: Specification =
+        serde_json::from_str(profile.raw_specs.main).expect("Failed to parse specification");
+
+    // Merge specs (we only care about write methods and errors at the moment as the write specs
+    // does not provide additional models).
+    let mut write_specs: Specification =
+        serde_json::from_str(profile.raw_specs.write).expect("Failed to parse specification");
+    specs.methods.append(&mut write_specs.methods);
+    write_specs
+        .components
+        .errors
+        .iter()
+        .for_each(|(key, value)| {
+            if let indexmap::map::Entry::Vacant(entry) =
+                specs.components.errors.entry(key.to_owned())
+            {
+                entry.insert(value.to_owned());
+            }
+        });
 
     println!("// AUTO-GENERATED CODE. DO NOT EDIT");
     println!("// To change the code generated, modify the codegen tool instead:");
