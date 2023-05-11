@@ -566,7 +566,7 @@ impl RustStruct {
 impl RustEnum {
     pub fn render_stdout(&self, name: &str) {
         println!(
-            "#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize{})]",
+            "#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize{})]",
             if self.thiserror {
                 ", thiserror::Error"
             } else {
