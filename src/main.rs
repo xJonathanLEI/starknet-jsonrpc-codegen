@@ -87,6 +87,7 @@ enum RustTypeKind {
 #[derive(Debug, Clone)]
 struct RustStruct {
     serde_as_array: bool,
+    extra_ref_type: bool,
     fields: Vec<RustField>,
 }
 
@@ -269,6 +270,22 @@ impl RustStruct {
         }
 
         println!("}}");
+
+        if self.extra_ref_type {
+            println!();
+
+            print_doc(&format!("Reference version of [{}].", name), 0);
+            println!("#[derive(Debug, Clone)]");
+            println!("pub struct {name}Ref<'a> {{");
+
+            for field in self.fields.iter().filter(|field| field.fixed.is_none()) {
+                for line in field.def_lines(4, false, true) {
+                    println!("{line}")
+                }
+            }
+
+            println!("}}");
+        }
     }
 
     pub fn render_serde_stdout(&self, name: &str) {
@@ -298,7 +315,21 @@ impl RustStruct {
     }
 
     fn render_impl_array_serialize_stdout(&self, name: &str) {
-        println!("impl Serialize for {name} {{");
+        self.render_impl_array_serialize_stdout_inner(name, false);
+
+        if self.extra_ref_type {
+            println!();
+            self.render_impl_array_serialize_stdout_inner(name, true);
+        }
+    }
+
+    fn render_impl_array_serialize_stdout_inner(&self, name: &str, is_ref_type: bool) {
+        println!(
+            "impl{} Serialize for {}{} {{",
+            if is_ref_type { "<'a>" } else { "" },
+            name,
+            if is_ref_type { "Ref<'a>" } else { "" },
+        );
         println!(
             "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
         );
@@ -326,12 +357,20 @@ impl RustStruct {
         for (ind_field, field) in self.fields.iter().enumerate() {
             if field.name.len() > 5 {
                 println!("        seq.serialize_element(&Field{} {{", ind_field);
-                println!("            {}: &self.{},", field.name, field.name);
+                println!(
+                    "            {}: {}self.{},",
+                    field.name,
+                    if is_ref_type { "" } else { "&" },
+                    field.name
+                );
                 println!("        }})?;");
             } else {
                 println!(
-                    "        seq.serialize_element(&Field{} {{ {}: &self.{} }})?;",
-                    ind_field, field.name, field.name
+                    "        seq.serialize_element(&Field{} {{ {}: {}self.{} }})?;",
+                    ind_field,
+                    field.name,
+                    if is_ref_type { "" } else { "&" },
+                    field.name
                 );
             }
         }
@@ -1392,6 +1431,7 @@ fn resolve_types(
             } else {
                 RustTypeKind::Struct(RustStruct {
                     serde_as_array: true,
+                    extra_ref_type: true,
                     fields: request_fields,
                 })
             },
@@ -1428,6 +1468,7 @@ fn schema_to_rust_type_kind(
             get_schema_fields(redirected_schema, specs, &mut fields, flatten_option)?;
             Some(RustTypeKind::Struct(RustStruct {
                 serde_as_array: false,
+                extra_ref_type: false,
                 fields,
             }))
         }
@@ -1437,6 +1478,7 @@ fn schema_to_rust_type_kind(
             get_schema_fields(entity, specs, &mut fields, flatten_option)?;
             Some(RustTypeKind::Struct(RustStruct {
                 serde_as_array: false,
+                extra_ref_type: false,
                 fields,
             }))
         }
