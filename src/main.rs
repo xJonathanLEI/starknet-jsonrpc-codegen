@@ -684,6 +684,11 @@ impl RustField {
                         format!("{leading_spaces}#[serde(with = \"{serializer}\")]")
                     }
                     SerializerOverride::SerdeAs(serializer) => {
+                        let serializer = if is_ref && serializer.starts_with("Vec<") {
+                            format!("[{}]", &serializer[4..(serializer.len() - 1)])
+                        } else {
+                            serializer.to_owned()
+                        };
                         format!("{leading_spaces}#[serde_as(as = \"{serializer}\")]")
                     }
                 });
@@ -697,6 +702,8 @@ impl RustField {
             if is_ref {
                 if self.type_name == "String" {
                     String::from("&'a str")
+                } else if self.type_name.starts_with("Vec<") {
+                    format!("&'a [{}]", &self.type_name[4..(self.type_name.len() - 1)])
                 } else {
                     format!("&'a {}", self.type_name)
                 }
