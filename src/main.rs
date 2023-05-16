@@ -1383,7 +1383,7 @@ fn resolve_types(
     types.push(RustType {
         title: Some(String::from("JSON-RPC error codes")),
         description: None,
-        name: String::from("ErrorCode"),
+        name: String::from("StarknetError"),
         content: RustTypeKind::Enum(RustEnum {
             thiserror: true,
             variants: specs
