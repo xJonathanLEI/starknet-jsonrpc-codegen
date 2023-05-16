@@ -1888,6 +1888,9 @@ fn to_starknet_rs_name(name: &str) -> String {
         "CommonReceiptProperties" => String::from("TransactionReceiptMeta"),
         "InvokeTransactionReceiptProperties" => String::from("InvokeTransactionReceiptData"),
         "PendingCommonReceiptProperties" => String::from("PendingTransactionReceiptMeta"),
+        "SierraContractClass" => String::from("FlattenedSierraClass"),
+        "LegacyContractClass" => String::from("CompressedLegacyContractClass"),
+        "DeprecatedContractClass" => String::from("CompressedLegacyContractClass"),
         _ => name,
     }
 }
