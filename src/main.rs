@@ -1281,10 +1281,20 @@ fn main() {
 
     println!("use serde::{{Deserialize, Deserializer, Serialize, Serializer}};");
     println!("use serde_with::serde_as;");
-    println!("use starknet_core::{{");
-    println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
-    println!("    types::FieldElement,");
-    println!("}};");
+
+    if profile.version == SpecVersion::V0_1_0 {
+        println!("use starknet_core::{{");
+        println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
+        println!("    types::FieldElement,");
+        println!("}};");
+    } else {
+        println!();
+        println!("use crate::{{");
+        println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
+        println!("    types::FieldElement,");
+        println!("}};");
+    }
+
     println!();
 
     // In later versions this type is still defined by never actually used
