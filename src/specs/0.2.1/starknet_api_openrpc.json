@@ -856,7 +856,8 @@
             "description": "The change in state applied in this block, given as a mapping of addresses to the new values and/or new contracts",
             "$ref": "#/components/schemas/STATE_DIFF"
           }
-        }
+        },
+        "required": ["old_root", "state_diff"]
       },
       "STATE_DIFF": {
         "type": "object",
