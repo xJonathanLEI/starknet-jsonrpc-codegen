@@ -826,17 +826,29 @@ fn main() {
                     },
                     RustTypeWithFixedFields {
                         name: "DeployAccountTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                        }],
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DEPLOY_ACCOUNT\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
                     },
                     RustTypeWithFixedFields {
                         name: "BroadcastedDeployAccountTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                        }],
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DEPLOY_ACCOUNT\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
                     },
                     RustTypeWithFixedFields {
                         name: "DeployTransaction",
@@ -1064,17 +1076,29 @@ fn main() {
                     },
                     RustTypeWithFixedFields {
                         name: "DeployAccountTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                        }],
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DEPLOY_ACCOUNT\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
                     },
                     RustTypeWithFixedFields {
                         name: "BroadcastedDeployAccountTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                        }],
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DEPLOY_ACCOUNT\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&1",
+                            },
+                        ],
                     },
                     RustTypeWithFixedFields {
                         name: "DeployTransaction",
