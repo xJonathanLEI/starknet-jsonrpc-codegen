@@ -28,6 +28,7 @@ struct GenerationProfile {
     flatten_options: FlattenOption,
     ignore_types: Vec<String>,
     fixed_field_types: FixedFieldsOptions,
+    arc_wrapped_types: ArcWrappingOptions,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,9 +50,20 @@ struct FixedFieldsOptions {
 }
 
 #[derive(Debug, Clone)]
+struct ArcWrappingOptions {
+    arc_wrapped_types: Vec<RustTypeWithArcWrappedFields>,
+}
+
+#[derive(Debug, Clone)]
 struct RustTypeWithFixedFields {
     name: &'static str,
     fields: Vec<FixedField>,
+}
+
+#[derive(Debug, Clone)]
+struct RustTypeWithArcWrappedFields {
+    name: &'static str,
+    fields: Vec<&'static str>,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +125,7 @@ struct RustField {
     name: String,
     optional: bool,
     fixed: Option<FixedField>,
+    arc_wrap: bool,
     type_name: String,
     serde_rename: Option<String>,
     serde_faltten: bool,
@@ -185,6 +198,18 @@ impl FixedFieldsOptions {
                     .cloned()
             } else {
                 None
+            }
+        })
+    }
+}
+
+impl ArcWrappingOptions {
+    fn in_field_wrapped(&self, type_name: &str, field_name: &str) -> bool {
+        self.arc_wrapped_types.iter().any(|item| {
+            if item.name == type_name {
+                item.fields.iter().any(|field| field == &field_name)
+            } else {
+                false
             }
         })
     }
@@ -264,7 +289,7 @@ impl RustStruct {
                 print_doc(doc, 4);
             }
 
-            for line in field.def_lines(4, derive_serde, false) {
+            for line in field.def_lines(4, derive_serde, false, false) {
                 println!("{line}")
             }
         }
@@ -279,7 +304,7 @@ impl RustStruct {
             println!("pub struct {name}Ref<'a> {{");
 
             for field in self.fields.iter().filter(|field| field.fixed.is_none()) {
-                for line in field.def_lines(4, false, true) {
+                for line in field.def_lines(4, false, true, false) {
                     println!("{line}")
                 }
             }
@@ -342,7 +367,7 @@ impl RustStruct {
             println!("        #[derive(Serialize)]");
             println!("        #[serde(transparent)]");
             println!("        struct Field{}<'a> {{", ind_field);
-            for line in field.def_lines(12, true, true).iter() {
+            for line in field.def_lines(12, true, true, false).iter() {
                 println!("{line}");
             }
             println!("        }}");
@@ -400,7 +425,7 @@ impl RustStruct {
         println!("        struct Tagged<'a> {{");
 
         for field in self.fields.iter() {
-            for line in field.def_lines(12, true, true).iter() {
+            for line in field.def_lines(12, true, true, false).iter() {
                 println!("{line}");
             }
         }
@@ -446,7 +471,7 @@ impl RustStruct {
             println!("        #[derive(Deserialize)]");
             println!("        #[serde(transparent)]");
             println!("        struct Field{} {{", ind_field);
-            for line in field.def_lines(12, true, false).iter() {
+            for line in field.def_lines(12, true, false, false).iter() {
                 println!("{line}");
             }
             println!("        }}");
@@ -512,13 +537,14 @@ impl RustStruct {
                     name: field.name.clone(),
                     optional: true,
                     fixed: None,
+                    arc_wrap: false,
                     type_name: format!("Option<{}>", field.type_name),
                     serde_rename: field.serde_rename.clone(),
                     serde_faltten: field.serde_faltten,
                     serializer: field.serializer.as_ref().map(|value| value.to_optional()),
                 }
-                .def_lines(12, true, false),
-                None => field.def_lines(12, true, false),
+                .def_lines(12, true, false, true),
+                None => field.def_lines(12, true, false, true),
             };
 
             for line in lines.iter() {
@@ -550,9 +576,13 @@ impl RustStruct {
 
         for field in self.fields.iter().filter(|field| field.fixed.is_none()) {
             println!(
-                "            {}: tagged.{},",
+                "            {}: {},",
                 escape_name(&field.name),
-                escape_name(&field.name)
+                if field.arc_wrap {
+                    format!("Arc::new(tagged.{})", escape_name(&field.name))
+                } else {
+                    format!("tagged.{}", escape_name(&field.name))
+                }
             );
         }
 
@@ -659,7 +689,13 @@ impl RustUnit {
 }
 
 impl RustField {
-    pub fn def_lines(&self, leading_spaces: usize, serde_attrs: bool, is_ref: bool) -> Vec<String> {
+    pub fn def_lines(
+        &self,
+        leading_spaces: usize,
+        serde_attrs: bool,
+        is_ref: bool,
+        no_arc_wrapping: bool,
+    ) -> Vec<String> {
         let mut lines = vec![];
 
         let leading_spaces = " ".repeat(leading_spaces);
@@ -707,6 +743,8 @@ impl RustField {
                 } else {
                     format!("&'a {}", self.type_name)
                 }
+            } else if self.arc_wrap && !no_arc_wrapping {
+                format!("Arc<{}>", self.type_name)
             } else {
                 self.type_name.clone()
             },
@@ -744,6 +782,9 @@ fn main() {
             ignore_types: vec![],
             fixed_field_types: FixedFieldsOptions {
                 fixed_field_types: vec![],
+            },
+            arc_wrapped_types: ArcWrappingOptions {
+                arc_wrapped_types: vec![],
             },
         },
         GenerationProfile {
@@ -995,6 +1036,18 @@ fn main() {
                     },
                 ],
             },
+            arc_wrapped_types: ArcWrappingOptions {
+                arc_wrapped_types: vec![
+                    RustTypeWithArcWrappedFields {
+                        name: "BroadcastedDeclareTransactionV1",
+                        fields: vec!["contract_class"],
+                    },
+                    RustTypeWithArcWrappedFields {
+                        name: "BroadcastedDeclareTransactionV2",
+                        fields: vec!["contract_class"],
+                    },
+                ],
+            },
         },
         GenerationProfile {
             version: SpecVersion::V0_3_0,
@@ -1238,6 +1291,18 @@ fn main() {
                     },
                 ],
             },
+            arc_wrapped_types: ArcWrappingOptions {
+                arc_wrapped_types: vec![
+                    RustTypeWithArcWrappedFields {
+                        name: "BroadcastedDeclareTransactionV1",
+                        fields: vec!["contract_class"],
+                    },
+                    RustTypeWithArcWrappedFields {
+                        name: "BroadcastedDeclareTransactionV2",
+                        fields: vec!["contract_class"],
+                    },
+                ],
+            },
         },
     ];
 
@@ -1292,6 +1357,7 @@ fn main() {
         &profile.flatten_options,
         &profile.ignore_types,
         &profile.fixed_field_types,
+        &profile.arc_wrapped_types,
     )
     .expect("Failed to resolve types");
 
@@ -1302,6 +1368,9 @@ fn main() {
         }
         println!();
     }
+
+    println!("use std::sync::Arc;");
+    println!();
 
     println!("use serde::{{Deserialize, Deserializer, Serialize, Serializer}};");
     println!("use serde_with::serde_as;");
@@ -1360,6 +1429,7 @@ fn resolve_types(
     flatten_option: &FlattenOption,
     ignore_types: &[String],
     fixed_fields: &FixedFieldsOptions,
+    arc_wrapping: &ArcWrappingOptions,
 ) -> Result<TypeResolutionResult> {
     let mut types = vec![];
     let mut req_types: Vec<RustType> = vec![];
@@ -1403,6 +1473,7 @@ fn resolve_types(
         if let RustTypeKind::Struct(inner) = &mut content {
             for field in inner.fields.iter_mut() {
                 field.fixed = fixed_fields.find_fixed_field(&rusty_name, &field.name);
+                field.arc_wrap = arc_wrapping.in_field_wrapped(&rusty_name, &field.name);
             }
         }
 
@@ -1449,6 +1520,7 @@ fn resolve_types(
                 name: param.name.clone(),
                 optional: !param.required,
                 fixed: None,
+                arc_wrap: false,
                 type_name: field_type.type_name,
                 serde_rename: None,
                 serde_faltten: false,
@@ -1698,6 +1770,7 @@ fn get_schema_fields(
                                 name: reference.name().to_lowercase(),
                                 optional: false,
                                 fixed: None,
+                                arc_wrap: false,
                                 type_name: to_starknet_rs_name(reference.name()),
                                 serde_rename: None,
                                 serde_faltten: true,
@@ -1753,6 +1826,7 @@ fn get_schema_fields(
                     name: field_name,
                     optional: field_optional,
                     fixed: None,
+                    arc_wrap: false,
                     type_name,
                     serde_rename: rename,
                     serde_faltten: false,
