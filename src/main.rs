@@ -1839,7 +1839,7 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             serializer: Some(SerializerOverride::SerdeAs(String::from("Vec<UfeHex>"))),
         },
         "CONTRACT_ABI" => RustFieldType {
-            type_name: String::from("Vec<ContractAbiEntry>"),
+            type_name: String::from("Vec<LegacyContractAbiEntry>"),
             serializer: None,
         },
         "CONTRACT_ENTRY_POINT_LIST" => RustFieldType {
@@ -1901,6 +1901,15 @@ fn to_starknet_rs_name(name: &str) -> String {
         "SierraContractClass" => String::from("FlattenedSierraClass"),
         "LegacyContractClass" => String::from("CompressedLegacyContractClass"),
         "DeprecatedContractClass" => String::from("CompressedLegacyContractClass"),
+        "ContractAbiEntry" => String::from("LegacyContractAbiEntry"),
+        "FunctionAbiEntry" => String::from("LegacyFunctionAbiEntry"),
+        "EventAbiEntry" => String::from("LegacyEventAbiEntry"),
+        "StructAbiEntry" => String::from("LegacyStructAbiEntry"),
+        "FunctionAbiType" => String::from("LegacyFunctionAbiType"),
+        "EventAbiType" => String::from("LegacyEventAbiType"),
+        "StructAbiType" => String::from("LegacyStructAbiType"),
+        "StructMember" => String::from("LegacyStructMember"),
+        "TypedParameter" => String::from("LegacyTypedParameter"),
         _ => name,
     }
 }
