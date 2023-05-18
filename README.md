@@ -16,7 +16,7 @@ The following versions are supported:
 
 - `0.1.0`
 - `0.2.1`
-- `0.3.0` (this is an unreleased version; currently tracking commit [`96002b0`](https://github.com/starkware-libs/starknet-specs/commit/96002b00650746b4123d2cd416cce8394cd602b8))
+- `0.3.0`
 
 ## License
 
