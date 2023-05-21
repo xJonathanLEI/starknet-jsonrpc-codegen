@@ -1069,6 +1069,8 @@ fn main() {
                 String::from("PENDING_COMMON_RECEIPT_PROPERTIES"),
                 String::from("COMMON_TXN_PROPERTIES"),
                 String::from("COMMON_RECEIPT_PROPERTIES"),
+                String::from("PENDING_STATE_UPDATE"),
+                String::from("DECLARE_TXN_V1"),
             ]),
             ignore_types: vec![],
             // We need these because they're implied by the network but not explicitly specified.
@@ -1621,7 +1623,7 @@ fn schema_to_rust_type_kind(
 /// Finds the list of schemas that are used and only used for flattening inside objects
 fn get_flatten_only_schemas(specs: &Specification, flatten_option: &FlattenOption) -> Vec<String> {
     // We need this for now since we don't search method calls, so we could get false positives
-    const HARD_CODED_NON_FLATTEN_SCHEMAS: [&str; 1] = ["FUNCTION_CALL"];
+    const HARD_CODED_NON_FLATTEN_SCHEMAS: [&str; 2] = ["FUNCTION_CALL", "PENDING_STATE_UPDATE"];
 
     let mut flatten_fields = HashSet::<String>::new();
     let mut non_flatten_fields = HashSet::<String>::new();
@@ -2008,6 +2010,8 @@ fn to_starknet_rs_name(name: &str) -> String {
         "StructAbiType" => String::from("LegacyStructAbiType"),
         "StructMember" => String::from("LegacyStructMember"),
         "TypedParameter" => String::from("LegacyTypedParameter"),
+        "DeprecatedEntryPointsByType" => String::from("LegacyEntryPointsByType"),
+        "DeprecatedCairoEntryPoint" => String::from("LegacyContractEntryPoint"),
         _ => name,
     }
 }
