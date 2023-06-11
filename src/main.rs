@@ -463,6 +463,19 @@ impl RustStruct {
         println!("impl<'de> Deserialize<'de> for {name} {{");
         println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
 
+        println!("        #[serde_as]");
+        println!("        #[derive(Deserialize)]");
+        println!("        struct AsObject {{");
+
+        for field in self.fields.iter() {
+            for line in field.def_lines(12, true, false, false).iter() {
+                println!("{line}");
+            }
+        }
+
+        println!("        }}");
+        println!();
+
         for (ind_field, field) in self.fields.iter().enumerate() {
             if field.serializer.is_some() {
                 println!("        #[serde_as]");
@@ -478,35 +491,50 @@ impl RustStruct {
             println!();
         }
 
-        println!(
-            "        let mut elements = Vec::<serde_json::Value>::deserialize(deserializer)?;"
-        );
+        println!("        let temp = serde_json::Value::deserialize(deserializer)?;");
         println!();
+        println!(
+            "        if let Ok(mut elements) = Vec::<serde_json::Value>::deserialize(&temp) {{"
+        );
 
         for (ind_field, _) in self.fields.iter().enumerate().rev() {
             println!(
-                "        let field{} = serde_json::from_value::<Field{}>(",
+                "            let field{} = serde_json::from_value::<Field{}>(",
                 ind_field, ind_field
             );
-            println!("            elements");
-            println!("                .pop()");
-            println!("                .ok_or_else(|| serde::de::Error::custom(\"invalid sequence length\"))?,");
-            println!("        )");
-            println!("        .map_err(|err| serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err)))?;");
+            println!("                elements");
+            println!("                    .pop()");
+            println!("                    .ok_or_else(|| serde::de::Error::custom(\"invalid sequence length\"))?,");
+            println!("            )");
+            println!("            .map_err(|err| serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err)))?;");
         }
 
         println!();
 
-        println!("        Ok(Self {{");
+        println!("            Ok(Self {{");
 
         for (ind_field, field) in self.fields.iter().enumerate() {
             println!(
-                "            {}: field{}.{},",
+                "                {}: field{}.{},",
                 field.name, ind_field, field.name
             );
         }
 
-        println!("        }})");
+        println!("            }})");
+
+        println!("        }} else if let Ok(object) = AsObject::deserialize(&temp) {{");
+
+        println!("            Ok(Self {{");
+
+        for field in self.fields.iter() {
+            println!("                {}: object.{},", field.name, field.name);
+        }
+
+        println!("            }})");
+
+        println!("        }} else {{");
+        println!("            Err(serde::de::Error::custom(\"invalid sequence length\"))");
+        println!("        }}");
 
         println!("    }}");
         println!("}}");
