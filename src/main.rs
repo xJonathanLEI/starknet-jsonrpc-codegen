@@ -626,7 +626,7 @@ impl RustEnum {
         println!(
             "#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize{})]",
             if self.thiserror {
-                ", thiserror::Error"
+                ", Error"
             } else {
                 ""
             }
@@ -1399,9 +1399,6 @@ fn main() {
         println!();
     }
 
-    println!("use std::sync::Arc;");
-    println!();
-
     println!("use serde::{{Deserialize, Deserializer, Serialize, Serializer}};");
     println!("use serde_with::serde_as;");
 
@@ -1415,6 +1412,8 @@ fn main() {
         println!("use crate::{{");
         println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
         println!("    types::FieldElement,");
+        println!("    stdlib::sync::Arc,");
+        println!("    stdlib::Error,");
         println!("}};");
     }
 
