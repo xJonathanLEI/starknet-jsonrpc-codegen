@@ -1106,6 +1106,19 @@ fn main() {
             fixed_field_types: FixedFieldsOptions {
                 fixed_field_types: vec![
                     RustTypeWithFixedFields {
+                        name: "DeclareTransactionV0",
+                        fields: vec![
+                            FixedField {
+                                name: "type",
+                                value: "\"DECLARE\"",
+                            },
+                            FixedField {
+                                name: "version",
+                                value: "&0",
+                            },
+                        ],
+                    },
+                    RustTypeWithFixedFields {
                         name: "DeclareTransactionV1",
                         fields: vec![
                             FixedField {

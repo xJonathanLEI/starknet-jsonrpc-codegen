@@ -1488,12 +1488,25 @@
         "title": "Declare transaction",
         "oneOf": [
           {
+            "title": "Declare transaction V0",
+            "$ref": "#/components/schemas/DECLARE_TXN_V0"
+          },
+          {
             "title": "Declare transaction V1",
             "$ref": "#/components/schemas/DECLARE_TXN_V1"
           },
           {
             "title": "Declare transaction V2",
             "$ref": "#/components/schemas/DECLARE_TXN_V2"
+          }
+        ]
+      },
+      "DECLARE_TXN_V0": {
+        "title": "Declare Contract Transaction V0",
+        "description": "Declare Contract Transaction V0",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DECLARE_TXN_V1"
           }
         ]
       },
