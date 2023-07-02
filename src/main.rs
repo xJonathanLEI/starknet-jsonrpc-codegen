@@ -607,7 +607,7 @@ impl RustStruct {
                 "            {}: {},",
                 escape_name(&field.name),
                 if field.arc_wrap {
-                    format!("Arc::new(tagged.{})", escape_name(&field.name))
+                    format!("OwnedPtr::new(tagged.{})", escape_name(&field.name))
                 } else {
                     format!("tagged.{}", escape_name(&field.name))
                 }
@@ -641,11 +641,12 @@ impl RustEnum {
 
         if self.is_error {
             println!();
+            println!("#[cfg(feature = \"std\")]");
             println!("impl std::error::Error for {name} {{}}");
 
             println!();
-            println!("impl std::fmt::Display for {name} {{");
-            println!("    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{");
+            println!("impl core::fmt::Display for {name} {{");
+            println!("    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {{");
             println!("        match self {{");
 
             for variant in self.variants.iter() {
@@ -793,7 +794,7 @@ impl RustField {
                     format!("&'a {}", self.type_name)
                 }
             } else if self.arc_wrap && !no_arc_wrapping {
-                format!("Arc<{}>", self.type_name)
+                format!("OwnedPtr<{}>", self.type_name)
             } else {
                 self.type_name.clone()
             },
@@ -1433,7 +1434,7 @@ fn main() {
         println!();
     }
 
-    println!("use std::sync::Arc;");
+    println!("use alloc::{{format, string::String, vec::Vec}};");
     println!();
 
     println!("use serde::{{Deserialize, Deserializer, Serialize, Serializer}};");
@@ -1461,6 +1462,12 @@ fn main() {
     }
 
     println!("use super::{{serde_impls::NumAsHex, *}};");
+    println!();
+
+    println!("#[cfg(all(not(no_rc), not(no_sync), target_has_atomic = \"ptr\"))]");
+    println!("pub type OwnedPtr<T> = alloc::sync::Arc<T>;");
+    println!("#[cfg(not(all(not(no_rc), not(no_sync), target_has_atomic = \"ptr\")))]");
+    println!("pub type OwnedPtr<T> = alloc::boxed::Box<T>;");
     println!();
 
     let mut manual_serde_types = vec![];
