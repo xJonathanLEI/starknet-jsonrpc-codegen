@@ -105,7 +105,7 @@ struct RustStruct {
 
 #[derive(Debug, Clone)]
 struct RustEnum {
-    thiserror: bool,
+    is_error: bool,
     variants: Vec<RustVariant>,
 }
 
@@ -623,14 +623,7 @@ impl RustStruct {
 
 impl RustEnum {
     pub fn render_stdout(&self, name: &str) {
-        println!(
-            "#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize{})]",
-            if self.thiserror {
-                ", thiserror::Error"
-            } else {
-                ""
-            }
-        );
+        println!("#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]");
         println!("pub enum {name} {{");
 
         for variant in self.variants.iter() {
@@ -641,13 +634,41 @@ impl RustEnum {
             if let Some(rename) = &variant.serde_name {
                 println!("    #[serde(rename = \"{rename}\")]");
             }
-            if let Some(err) = &variant.error_text {
-                println!("    #[error(\"{err}\")]");
-            }
             println!("    {},", variant.name);
         }
 
         println!("}}");
+
+        if self.is_error {
+            println!();
+            println!("impl std::error::Error for {name} {{}}");
+
+            println!();
+            println!("impl std::fmt::Display for {name} {{");
+            println!("    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{");
+            println!("        match self {{");
+
+            for variant in self.variants.iter() {
+                if let Some(err) = &variant.error_text {
+                    let one_line = format!(
+                        "            Self::{} => write!(f, \"{}\"),",
+                        variant.name, err
+                    );
+
+                    if one_line.len() <= MAX_LINE_LENGTH {
+                        println!("{}", one_line);
+                    } else {
+                        println!("            Self::{} => {{", variant.name);
+                        println!("                write!(f, \"{}\")", err);
+                        println!("            }}");
+                    }
+                }
+            }
+
+            println!("        }}");
+            println!("    }}");
+            println!("}}");
+        }
     }
 
     pub fn need_custom_serde(&self) -> bool {
@@ -1533,7 +1554,7 @@ fn resolve_types(
         description: None,
         name: String::from("StarknetError"),
         content: RustTypeKind::Enum(RustEnum {
-            thiserror: true,
+            is_error: true,
             variants: specs
                 .components
                 .errors
@@ -1640,7 +1661,7 @@ fn schema_to_rust_type_kind(
         }
         Schema::Primitive(Primitive::String(value)) => match &value.r#enum {
             Some(variants) => Some(RustTypeKind::Enum(RustEnum {
-                thiserror: false,
+                is_error: false,
                 variants: variants
                     .iter()
                     .map(|item| RustVariant {
