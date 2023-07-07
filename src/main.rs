@@ -70,6 +70,7 @@ struct RustTypeWithArcWrappedFields {
 struct FixedField {
     name: &'static str,
     value: &'static str,
+    is_query_version: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -266,6 +267,30 @@ impl RustTypeKind {
 
 impl RustStruct {
     pub fn render_stdout(&self, name: &str) {
+        let mut fields = self.fields.clone();
+        if fields.iter().any(|field| {
+            field
+                .fixed
+                .as_ref()
+                .is_some_and(|fixed| fixed.is_query_version)
+        }) {
+            fields.push(RustField {
+                description: Some(
+                    "If set to `true`, \
+                    uses a query-only transaction version that's invalid for execution"
+                        .into(),
+                ),
+                name: "is_query".into(),
+                optional: false,
+                fixed: None,
+                arc_wrap: false,
+                type_name: "bool".into(),
+                serde_rename: None,
+                serde_faltten: false,
+                serializer: None,
+            });
+        }
+
         let derive_serde = !self.need_custom_serde();
 
         if derive_serde
@@ -284,7 +309,7 @@ impl RustStruct {
         }
         println!("pub struct {name} {{");
 
-        for field in self.fields.iter().filter(|field| field.fixed.is_none()) {
+        for field in fields.iter().filter(|field| field.fixed.is_none()) {
             if let Some(doc) = &field.description {
                 print_doc(doc, 4);
             }
@@ -303,7 +328,7 @@ impl RustStruct {
             println!("#[derive(Debug, Clone)]");
             println!("pub struct {name}Ref<'a> {{");
 
-            for field in self.fields.iter().filter(|field| field.fixed.is_none()) {
+            for field in fields.iter().filter(|field| field.fixed.is_none()) {
                 for line in field.def_lines(4, false, true, false) {
                     println!("{line}")
                 }
@@ -432,16 +457,33 @@ impl RustStruct {
 
         println!("        }}");
         println!();
+
+        for field in self.fields.iter().filter_map(|field| field.fixed.as_ref()) {
+            if field.is_query_version {
+                println!(
+                    "        let {} = &(if self.is_query {{",
+                    escape_name(field.name)
+                );
+                println!(
+                    "            {} + QUERY_VERSION_OFFSET",
+                    field.value.trim_start_matches('&')
+                );
+                println!("        }} else {{");
+                println!("            {}", field.value.trim_start_matches('&'));
+                println!("        }});");
+            } else {
+                println!("        let {} = {};", escape_name(field.name), field.value);
+            }
+
+            println!();
+        }
+
         println!("        let tagged = Tagged {{");
 
         for field in self.fields.iter() {
             match &field.fixed {
-                Some(fixed_field) => {
-                    println!(
-                        "            {}: {},",
-                        escape_name(&field.name),
-                        fixed_field.value
-                    )
+                Some(_) => {
+                    println!("            {},", escape_name(&field.name))
                 }
                 None => println!(
                     "            {}: &self.{},",
@@ -560,11 +602,11 @@ impl RustStruct {
 
         for field in self.fields.iter() {
             let lines = match &field.fixed {
-                Some(_) => RustField {
+                Some(fixed) => RustField {
                     description: field.description.clone(),
                     name: field.name.clone(),
-                    optional: true,
-                    fixed: None,
+                    optional: false,
+                    fixed: Some(fixed.to_owned()),
                     arc_wrap: false,
                     type_name: format!("Option<{}>", field.type_name),
                     serde_rename: field.serde_rename.clone(),
@@ -586,18 +628,40 @@ impl RustStruct {
         println!();
 
         for fixed_field in self.fields.iter().filter_map(|field| field.fixed.as_ref()) {
-            println!(
-                "        if let Some(tag_field) = &tagged.{} {{",
-                escape_name(fixed_field.name)
-            );
-            println!("            if tag_field != {} {{", fixed_field.value);
-            println!(
-                "                return Err(serde::de::Error::custom(\"invalid `{}` value\"));",
-                fixed_field.name
-            );
-            println!("            }}");
-            println!("        }}");
-            println!();
+            if fixed_field.is_query_version {
+                println!(
+                    "        let is_query = if tagged.{} == {} {{",
+                    fixed_field.name,
+                    fixed_field.value.trim_start_matches('&')
+                );
+                println!("            false");
+                println!(
+                    "        }} else if tagged.{} == {} + QUERY_VERSION_OFFSET {{",
+                    fixed_field.name,
+                    fixed_field.value.trim_start_matches('&')
+                );
+                println!("            true");
+                println!("        }} else {{");
+                println!(
+                    "            return Err(serde::de::Error::custom(\"invalid `{}` value\"));",
+                    fixed_field.name
+                );
+                println!("        }};");
+                println!();
+            } else {
+                println!(
+                    "        if let Some(tag_field) = &tagged.{} {{",
+                    escape_name(fixed_field.name)
+                );
+                println!("            if tag_field != {} {{", fixed_field.value);
+                println!(
+                    "                return Err(serde::de::Error::custom(\"invalid `{}` value\"));",
+                    fixed_field.name
+                );
+                println!("            }}");
+                println!("        }}");
+                println!();
+            }
         }
 
         println!("        Ok(Self {{");
@@ -612,6 +676,15 @@ impl RustStruct {
                     format!("tagged.{}", escape_name(&field.name))
                 }
             );
+        }
+
+        if self.fields.iter().any(|field| {
+            field
+                .fixed
+                .as_ref()
+                .is_some_and(|fixed| fixed.is_query_version)
+        }) {
+            println!("            is_query,",);
         }
 
         println!("        }})");
@@ -770,7 +843,17 @@ impl RustField {
                         format!("{leading_spaces}#[serde(with = \"{serializer}\")]")
                     }
                     SerializerOverride::SerdeAs(serializer) => {
-                        let serializer = if is_ref && serializer.starts_with("Vec<") {
+                        let serializer = if let Some(FixedField {
+                            is_query_version: true,
+                            ..
+                        }) = &self.fixed
+                        {
+                            if self.optional {
+                                "Option<UfeHex>".to_owned()
+                            } else {
+                                "UfeHex".to_owned()
+                            }
+                        } else if is_ref && serializer.starts_with("Vec<") {
                             format!("[{}]", &serializer[4..(serializer.len() - 1)])
                         } else {
                             serializer.to_owned()
@@ -781,22 +864,36 @@ impl RustField {
             }
         }
 
+        let type_name = if let Some(FixedField {
+            is_query_version: true,
+            ..
+        }) = &self.fixed
+        {
+            if self.optional {
+                "Option<FieldElement>"
+            } else {
+                "FieldElement"
+            }
+        } else {
+            &self.type_name
+        };
+
         lines.push(format!(
             "{}pub {}: {},",
             leading_spaces,
             escape_name(&self.name),
             if is_ref {
-                if self.type_name == "String" {
+                if type_name == "String" {
                     String::from("&'a str")
-                } else if self.type_name.starts_with("Vec<") {
-                    format!("&'a [{}]", &self.type_name[4..(self.type_name.len() - 1)])
+                } else if type_name.starts_with("Vec<") {
+                    format!("&'a [{}]", &type_name[4..(type_name.len() - 1)])
                 } else {
-                    format!("&'a {}", self.type_name)
+                    format!("&'a {}", type_name)
                 }
             } else if self.arc_wrap && !no_arc_wrapping {
-                format!("OwnedPtr<{}>", self.type_name)
+                format!("OwnedPtr<{}>", type_name)
             } else {
-                self.type_name.clone()
+                type_name.to_owned()
             },
         ));
 
@@ -869,10 +966,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&1",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -882,10 +981,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&2",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -895,10 +996,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&1",
+                                value: "&FieldElement::ONE",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -908,10 +1011,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&2",
+                                value: "&FieldElement::TWO",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -921,10 +1026,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DEPLOY_ACCOUNT\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&1",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -934,10 +1041,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DEPLOY_ACCOUNT\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&1",
+                                value: "&FieldElement::ONE",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -946,6 +1055,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -953,6 +1063,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -961,10 +1072,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&0",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -974,10 +1087,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&1",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -987,10 +1102,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&0",
+                                value: "&FieldElement::ZERO",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -1000,10 +1117,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&1",
+                                value: "&FieldElement::ONE",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -1012,6 +1131,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"L1_HANDLER\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1019,6 +1139,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1026,6 +1147,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DECLARE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1033,6 +1155,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY_ACCOUNT\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1040,6 +1163,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1047,6 +1171,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"L1_HANDLER\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1054,6 +1179,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1061,6 +1187,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DECLARE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1068,6 +1195,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY_ACCOUNT\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1075,6 +1203,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1082,6 +1211,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"L1_HANDLER\"",
+                            is_query_version: false,
                         }],
                     },
                 ],
@@ -1133,10 +1263,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&0",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -1146,10 +1278,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&1",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -1159,10 +1293,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&2",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -1172,10 +1308,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&1",
+                                value: "&FieldElement::ONE",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -1185,10 +1323,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DECLARE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&2",
+                                value: "&FieldElement::TWO",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -1198,10 +1338,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DEPLOY_ACCOUNT\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&1",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -1211,10 +1353,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"DEPLOY_ACCOUNT\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&1",
+                                value: "&FieldElement::ONE",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -1223,6 +1367,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1231,10 +1376,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&0",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -1244,10 +1391,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
                                 value: "&1",
+                                is_query_version: false,
                             },
                         ],
                     },
@@ -1257,10 +1406,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&0",
+                                value: "&FieldElement::ZERO",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -1270,10 +1421,12 @@ fn main() {
                             FixedField {
                                 name: "type",
                                 value: "\"INVOKE\"",
+                                is_query_version: false,
                             },
                             FixedField {
                                 name: "version",
-                                value: "&1",
+                                value: "&FieldElement::ONE",
+                                is_query_version: true,
                             },
                         ],
                     },
@@ -1282,6 +1435,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"L1_HANDLER\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1289,6 +1443,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1296,6 +1451,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DECLARE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1303,6 +1459,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY_ACCOUNT\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1310,6 +1467,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1317,6 +1475,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"L1_HANDLER\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1324,6 +1483,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"INVOKE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1331,6 +1491,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DECLARE\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1338,6 +1499,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY_ACCOUNT\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1345,6 +1507,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"DEPLOY\"",
+                            is_query_version: false,
                         }],
                     },
                     RustTypeWithFixedFields {
@@ -1352,6 +1515,7 @@ fn main() {
                         fields: vec![FixedField {
                             name: "type",
                             value: "\"L1_HANDLER\"",
+                            is_query_version: false,
                         }],
                     },
                 ],
@@ -1468,6 +1632,14 @@ fn main() {
     println!("pub type OwnedPtr<T> = alloc::sync::Arc<T>;");
     println!("#[cfg(not(all(not(no_rc), not(no_sync), target_has_atomic = \"ptr\")))]");
     println!("pub type OwnedPtr<T> = alloc::boxed::Box<T>;");
+    println!();
+
+    println!("const QUERY_VERSION_OFFSET: FieldElement = FieldElement::from_mont([");
+    println!("    18446744073700081665,");
+    println!("    17407,");
+    println!("    18446744073709551584,");
+    println!("    576460752142434320,");
+    println!("]);");
     println!();
 
     let mut manual_serde_types = vec![];
