@@ -138,6 +138,7 @@ struct RustVariant {
     description: Option<String>,
     name: String,
     serde_name: Option<String>,
+    #[allow(unused)]
     error_text: Option<String>,
 }
 
@@ -723,20 +724,10 @@ impl RustEnum {
             println!("        match self {{");
 
             for variant in self.variants.iter() {
-                if let Some(err) = &variant.error_text {
-                    let one_line = format!(
-                        "            Self::{} => write!(f, \"{}\"),",
-                        variant.name, err
-                    );
-
-                    if one_line.len() <= MAX_LINE_LENGTH {
-                        println!("{}", one_line);
-                    } else {
-                        println!("            Self::{} => {{", variant.name);
-                        println!("                write!(f, \"{}\")", err);
-                        println!("            }}");
-                    }
-                }
+                println!(
+                    "            Self::{} => write!(f, \"{}\"),",
+                    variant.name, variant.name
+                );
             }
 
             println!("        }}");
