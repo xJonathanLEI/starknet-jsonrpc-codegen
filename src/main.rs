@@ -183,9 +183,9 @@ impl ValueEnum for SpecVersion {
         use clap::builder::PossibleValue;
 
         match self {
-            Self::V0_1_0 => Some(PossibleValue::new("0.1.0")),
-            Self::V0_2_1 => Some(PossibleValue::new("0.2.1")),
-            Self::V0_3_0 => Some(PossibleValue::new("0.3.0")),
+            Self::V0_1_0 => Some(PossibleValue::new("0.1.0").alias("v0.1.0")),
+            Self::V0_2_1 => Some(PossibleValue::new("0.2.1").alias("v0.2.1")),
+            Self::V0_3_0 => Some(PossibleValue::new("0.3.0").alias("v0.3.0")),
         }
     }
 }
