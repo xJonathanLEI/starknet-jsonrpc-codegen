@@ -3,6 +3,7 @@ use std::{collections::HashSet, str::FromStr};
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
 use crate::spec::*;
 
@@ -25,10 +26,7 @@ struct Cli {
 struct GenerationProfile {
     version: SpecVersion,
     raw_specs: RawSpecs,
-    flatten_options: FlattenOption,
-    ignore_types: Vec<String>,
-    fixed_field_types: FixedFieldsOptions,
-    arc_wrapped_types: ArcWrappingOptions,
+    options: ProfileOptions,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,32 +42,41 @@ struct RawSpecs {
     write: &'static str,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProfileOptions {
+    flatten_options: FlattenOption,
+    ignore_types: Vec<String>,
+    fixed_field_types: FixedFieldsOptions,
+    arc_wrapped_types: ArcWrappingOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct FixedFieldsOptions {
     fixed_field_types: Vec<RustTypeWithFixedFields>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ArcWrappingOptions {
     arc_wrapped_types: Vec<RustTypeWithArcWrappedFields>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct RustTypeWithFixedFields {
-    name: &'static str,
+    name: String,
     fields: Vec<FixedField>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct RustTypeWithArcWrappedFields {
-    name: &'static str,
-    fields: Vec<&'static str>,
+    name: String,
+    fields: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct FixedField {
-    name: &'static str,
-    value: &'static str,
+    name: String,
+    value: String,
     is_query_version: bool,
 }
 
@@ -155,7 +162,7 @@ enum SerializerOverride {
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 enum FlattenOption {
     All,
     Selected(Vec<String>),
@@ -209,7 +216,7 @@ impl ArcWrappingOptions {
     fn in_field_wrapped(&self, type_name: &str, field_name: &str) -> bool {
         self.arc_wrapped_types.iter().any(|item| {
             if item.name == type_name {
-                item.fields.iter().any(|field| field == &field_name)
+                item.fields.iter().any(|field| field == field_name)
             } else {
                 false
             }
@@ -463,7 +470,7 @@ impl RustStruct {
             if field.is_query_version {
                 println!(
                     "        let {} = &(if self.is_query {{",
-                    escape_name(field.name)
+                    escape_name(&field.name)
                 );
                 println!(
                     "            {} + QUERY_VERSION_OFFSET",
@@ -473,7 +480,11 @@ impl RustStruct {
                 println!("            {}", field.value.trim_start_matches('&'));
                 println!("        }});");
             } else {
-                println!("        let {} = {};", escape_name(field.name), field.value);
+                println!(
+                    "        let {} = {};",
+                    escape_name(&field.name),
+                    field.value
+                );
             }
 
             println!();
@@ -652,7 +663,7 @@ impl RustStruct {
             } else {
                 println!(
                     "        if let Some(tag_field) = &tagged.{} {{",
-                    escape_name(fixed_field.name)
+                    escape_name(&fixed_field.name)
                 );
                 println!("            if tag_field != {} {{", fixed_field.value);
                 println!(
@@ -913,17 +924,8 @@ fn main() {
                 main: include_str!("./specs/0.1.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.1.0/starknet_write_api.json"),
             },
-            flatten_options: FlattenOption::Selected(vec![
-                String::from("BLOCK_BODY_WITH_TXS"),
-                String::from("BLOCK_BODY_WITH_TX_HASHES"),
-            ]),
-            ignore_types: vec![],
-            fixed_field_types: FixedFieldsOptions {
-                fixed_field_types: vec![],
-            },
-            arc_wrapped_types: ArcWrappingOptions {
-                arc_wrapped_types: vec![],
-            },
+            options: serde_json::from_str(include_str!("./profiles/0.1.0.json"))
+                .expect("Unable to parse profile options"),
         },
         GenerationProfile {
             version: SpecVersion::V0_2_1,
@@ -931,294 +933,8 @@ fn main() {
                 main: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.2.1/starknet_write_api.json"),
             },
-            flatten_options: FlattenOption::Selected(vec![
-                String::from("FUNCTION_CALL"),
-                String::from("EVENT"),
-                String::from("TYPED_PARAMETER"),
-                String::from("BLOCK_BODY_WITH_TXS"),
-                String::from("BLOCK_BODY_WITH_TX_HASHES"),
-                String::from("BLOCK_HEADER"),
-                String::from("BROADCASTED_TXN_COMMON_PROPERTIES"),
-                String::from("DEPLOY_ACCOUNT_TXN_PROPERTIES"),
-                String::from("DEPLOY_TXN_PROPERTIES"),
-                String::from("EVENT_CONTENT"),
-                String::from("PENDING_COMMON_RECEIPT_PROPERTIES"),
-                String::from("COMMON_TXN_PROPERTIES"),
-                String::from("COMMON_RECEIPT_PROPERTIES"),
-            ]),
-            ignore_types: vec![],
-            // We need these because they're implied by the network but not explicitly specified.
-            // So it's impossible to dynamically derive them accurately.
-            fixed_field_types: FixedFieldsOptions {
-                fixed_field_types: vec![
-                    RustTypeWithFixedFields {
-                        name: "DeclareTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&1",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeclareTransactionV2",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&2",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedDeclareTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ONE",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedDeclareTransactionV2",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::TWO",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployAccountTransaction",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DEPLOY_ACCOUNT\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&1",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedDeployAccountTransaction",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DEPLOY_ACCOUNT\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ONE",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedDeployTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "InvokeTransactionV0",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&0",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "InvokeTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&1",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedInvokeTransactionV0",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ZERO",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedInvokeTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ONE",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "L1HandlerTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"L1_HANDLER\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "InvokeTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"INVOKE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeclareTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DECLARE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployAccountTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "L1HandlerTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"L1_HANDLER\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingInvokeTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"INVOKE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingDeclareTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DECLARE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingDeployAccountTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingDeployTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingL1HandlerTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"L1_HANDLER\"",
-                            is_query_version: false,
-                        }],
-                    },
-                ],
-            },
-            arc_wrapped_types: ArcWrappingOptions {
-                arc_wrapped_types: vec![
-                    RustTypeWithArcWrappedFields {
-                        name: "BroadcastedDeclareTransactionV1",
-                        fields: vec!["contract_class"],
-                    },
-                    RustTypeWithArcWrappedFields {
-                        name: "BroadcastedDeclareTransactionV2",
-                        fields: vec!["contract_class"],
-                    },
-                ],
-            },
+            options: serde_json::from_str(include_str!("./profiles/0.2.1.json"))
+                .expect("Unable to parse profile options"),
         },
         GenerationProfile {
             version: SpecVersion::V0_3_0,
@@ -1226,303 +942,8 @@ fn main() {
                 main: include_str!("./specs/0.3.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.3.0/starknet_write_api.json"),
             },
-            flatten_options: FlattenOption::Selected(vec![
-                String::from("FUNCTION_CALL"),
-                String::from("EVENT"),
-                String::from("TYPED_PARAMETER"),
-                String::from("BLOCK_BODY_WITH_TXS"),
-                String::from("BLOCK_BODY_WITH_TX_HASHES"),
-                String::from("BLOCK_HEADER"),
-                String::from("BROADCASTED_TXN_COMMON_PROPERTIES"),
-                String::from("DEPLOY_ACCOUNT_TXN_PROPERTIES"),
-                String::from("DEPLOY_TXN_PROPERTIES"),
-                String::from("EVENT_CONTENT"),
-                String::from("PENDING_COMMON_RECEIPT_PROPERTIES"),
-                String::from("COMMON_TXN_PROPERTIES"),
-                String::from("COMMON_RECEIPT_PROPERTIES"),
-                String::from("PENDING_STATE_UPDATE"),
-                String::from("DECLARE_TXN_V1"),
-            ]),
-            ignore_types: vec![],
-            // We need these because they're implied by the network but not explicitly specified.
-            // So it's impossible to dynamically derive them accurately.
-            fixed_field_types: FixedFieldsOptions {
-                fixed_field_types: vec![
-                    RustTypeWithFixedFields {
-                        name: "DeclareTransactionV0",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&0",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeclareTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&1",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeclareTransactionV2",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&2",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedDeclareTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ONE",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedDeclareTransactionV2",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DECLARE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::TWO",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployAccountTransaction",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DEPLOY_ACCOUNT\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&1",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedDeployAccountTransaction",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"DEPLOY_ACCOUNT\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ONE",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "InvokeTransactionV0",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&0",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "InvokeTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&1",
-                                is_query_version: false,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedInvokeTransactionV0",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ZERO",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "BroadcastedInvokeTransactionV1",
-                        fields: vec![
-                            FixedField {
-                                name: "type",
-                                value: "\"INVOKE\"",
-                                is_query_version: false,
-                            },
-                            FixedField {
-                                name: "version",
-                                value: "&FieldElement::ONE",
-                                is_query_version: true,
-                            },
-                        ],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "L1HandlerTransaction",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"L1_HANDLER\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "InvokeTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"INVOKE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeclareTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DECLARE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployAccountTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "DeployTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "L1HandlerTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"L1_HANDLER\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingInvokeTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"INVOKE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingDeclareTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DECLARE\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingDeployAccountTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY_ACCOUNT\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingDeployTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"DEPLOY\"",
-                            is_query_version: false,
-                        }],
-                    },
-                    RustTypeWithFixedFields {
-                        name: "PendingL1HandlerTransactionReceipt",
-                        fields: vec![FixedField {
-                            name: "type",
-                            value: "\"L1_HANDLER\"",
-                            is_query_version: false,
-                        }],
-                    },
-                ],
-            },
-            arc_wrapped_types: ArcWrappingOptions {
-                arc_wrapped_types: vec![
-                    RustTypeWithArcWrappedFields {
-                        name: "BroadcastedDeclareTransactionV1",
-                        fields: vec!["contract_class"],
-                    },
-                    RustTypeWithArcWrappedFields {
-                        name: "BroadcastedDeclareTransactionV2",
-                        fields: vec!["contract_class"],
-                    },
-                ],
-            },
+            options: serde_json::from_str(include_str!("./profiles/0.3.0.json"))
+                .expect("Unable to parse profile options"),
         },
     ];
 
@@ -1564,9 +985,9 @@ fn main() {
     }
     println!();
 
-    if !profile.ignore_types.is_empty() {
+    if !profile.options.ignore_types.is_empty() {
         println!("// These types are ignored from code generation. Implement them manually:");
-        for ignored_type in profile.ignore_types.iter() {
+        for ignored_type in profile.options.ignore_types.iter() {
             println!("// - `{ignored_type}`");
         }
         println!();
@@ -1574,10 +995,10 @@ fn main() {
 
     let result = resolve_types(
         &specs,
-        &profile.flatten_options,
-        &profile.ignore_types,
-        &profile.fixed_field_types,
-        &profile.arc_wrapped_types,
+        &profile.options.flatten_options,
+        &profile.options.ignore_types,
+        &profile.options.fixed_field_types,
+        &profile.options.arc_wrapped_types,
     )
     .expect("Failed to resolve types");
 

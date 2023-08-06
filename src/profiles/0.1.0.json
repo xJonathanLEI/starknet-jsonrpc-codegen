@@ -1,0 +1,12 @@
+{
+  "flatten_options": {
+    "Selected": ["BLOCK_BODY_WITH_TXS", "BLOCK_BODY_WITH_TX_HASHES"]
+  },
+  "ignore_types": [],
+  "fixed_field_types": {
+    "fixed_field_types": []
+  },
+  "arc_wrapped_types": {
+    "arc_wrapped_types": []
+  }
+}
