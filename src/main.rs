@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 
-use crate::subcommands::Generate;
+use crate::subcommands::{Generate, Print};
 
 mod spec;
 mod subcommands;
@@ -22,7 +22,10 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Subcommands {
+    #[clap(about = "Generate Rust code")]
     Generate(Generate),
+    #[clap(about = "Print the spec to standard output")]
+    Print(Print),
 }
 
 #[derive(Debug, Clone)]
@@ -181,6 +184,7 @@ fn main() {
 
     let result = match cli.command {
         Subcommands::Generate(cmd) => cmd.run(&profiles),
+        Subcommands::Print(cmd) => cmd.run(&profiles),
     };
 
     result.expect("Error running commmand");

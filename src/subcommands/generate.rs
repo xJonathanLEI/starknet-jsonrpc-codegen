@@ -1,7 +1,7 @@
-use clap::Parser;
 use std::collections::HashSet;
 
 use anyhow::Result;
+use clap::Parser;
 use regex::Regex;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug, Parser)]
 pub struct Generate {
     #[clap(long, env, help = "Version of the specification")]
-    pub(crate) spec: SpecVersion,
+    spec: SpecVersion,
 }
 
 const MAX_LINE_LENGTH: usize = 100;
