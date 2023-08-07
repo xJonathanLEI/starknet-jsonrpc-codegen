@@ -5,7 +5,7 @@ Tool for generating the Starknet JSON-RPC code used in `starknet-rs`. Starknet s
 Run the tool and choose which version of the specification to use:
 
 ```console
-$ cargo run -- --spec 0.2.1
+$ cargo run -- generate --spec 0.2.1
 ```
 
 and generated code will be emitted to `stdout`.
