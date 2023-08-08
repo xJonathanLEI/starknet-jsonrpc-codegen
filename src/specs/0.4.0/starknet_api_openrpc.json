@@ -1066,7 +1066,6 @@
       },
       "STATE_UPDATE": {
         "title": "State update",
-        "type": "object",
         "allOf": [
           {
             "title": "Block info",
@@ -1270,7 +1269,6 @@
             "type": "array",
             "items": {
               "title": "transactions in block",
-              "type": "object",
               "allOf": [
                 {
                   "title": "transaction",
@@ -1792,6 +1790,7 @@
       "DEPLOY_ACCOUNT_TXN": {
         "title": "Deploy account transaction",
         "description": "Deploys an account contract, charges fee from the pre-funded account addresses",
+        "type": "object",
         "properties": {
           "type": {
             "title": "Deploy account",
@@ -1896,6 +1895,7 @@
       "INVOKE_TXN_V0": {
         "title": "Invoke transaction V0",
         "description": "invokes a specific function in the desired contract (not necessarily an account)",
+        "type": "object",
         "properties": {
           "type": {
             "title": "Type",
@@ -2086,7 +2086,6 @@
           },
           "revert_reason": {
             "title": "Revert reason",
-            "name": "revert reason",
             "description": "the revert reason for the failed execution",
             "type": "string"
           },
@@ -2291,7 +2290,6 @@
           },
           "revert_reason": {
             "title": "Revert reason",
-            "name": "revert reason",
             "description": "the revert reason for the failed execution",
             "type": "string"
           },
