@@ -295,16 +295,7 @@
         "description": "The contract class, if found",
         "schema": {
           "title": "Starknet get class result",
-          "oneOf": [
-            {
-              "title": "Deprecated contract class",
-              "$ref": "#/components/schemas/DEPRECATED_CONTRACT_CLASS"
-            },
-            {
-              "title": "Contract class",
-              "$ref": "#/components/schemas/CONTRACT_CLASS"
-            }
-          ]
+          "$ref": "#/components/schemas/CONTRACT_CLASS"
         }
       },
       "errors": [
@@ -384,16 +375,7 @@
         "description": "The contract class",
         "schema": {
           "title": "Starknet get class at result",
-          "oneOf": [
-            {
-              "title": "Deprecated contract class",
-              "$ref": "#/components/schemas/DEPRECATED_CONTRACT_CLASS"
-            },
-            {
-              "title": "Contract class",
-              "$ref": "#/components/schemas/CONTRACT_CLASS"
-            }
-          ]
+          "$ref": "#/components/schemas/CONTRACT_CLASS"
         }
       },
       "errors": [
@@ -1776,7 +1758,7 @@
               "contract_class": {
                 "title": "Contract class",
                 "description": "The class to be declared",
-                "$ref": "#/components/schemas/CONTRACT_CLASS"
+                "$ref": "#/components/schemas/SIERRA_CONTRACT_CLASS"
               },
               "sender_address": {
                 "title": "Sender address",
@@ -2650,7 +2632,17 @@
         "required": ["contract_address", "entry_point_selector", "calldata"]
       },
       "CONTRACT_CLASS": {
-        "title": "Contract class",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SIERRA_CONTRACT_CLASS"
+          },
+          {
+            "$ref": "#/components/schemas/LEGACY_CONTRACT_CLASS"
+          }
+        ]
+      },
+      "SIERRA_CONTRACT_CLASS": {
+        "title": "The definition of a Sierra Starknet contract class",
         "type": "object",
         "properties": {
           "sierra_program": {
@@ -2679,7 +2671,8 @@
         "required": [
           "sierra_program",
           "contract_class_version",
-          "entry_points_by_type"
+          "entry_points_by_type",
+          "abi"
         ]
       },
       "ENTRY_POINTS_BY_TYPE": {
@@ -2711,7 +2704,7 @@
       },
       "DEPRECATED_CONTRACT_CLASS": {
         "title": "Deprecated contract class",
-        "description": "The definition of a Starknet contract class",
+        "description": "The definition of a legacy (Cairo 0) Starknet contract class",
         "type": "object",
         "properties": {
           "program": {
