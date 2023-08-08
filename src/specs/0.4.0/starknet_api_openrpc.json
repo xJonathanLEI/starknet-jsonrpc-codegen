@@ -670,16 +670,7 @@
           "required": true,
           "schema": {
             "title": "Events request",
-            "allOf": [
-              {
-                "title": "Event filter",
-                "$ref": "#/components/schemas/EVENT_FILTER"
-              },
-              {
-                "title": "Result page request",
-                "$ref": "#/components/schemas/RESULT_PAGE_REQUEST"
-              }
-            ]
+            "$ref": "#/components/schemas/EVENT_FILTER_WITH_PAGE"
           }
         }
       ],
@@ -750,6 +741,16 @@
   "components": {
     "contentDescriptors": {},
     "schemas": {
+      "EVENT_FILTER_WITH_PAGE": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EVENT_FILTER"
+          },
+          {
+            "$ref": "#/components/schemas/RESULT_PAGE_REQUEST"
+          }
+        ]
+      },
       "EVENTS_CHUNK": {
         "title": "Events chunk",
         "type": "object",
