@@ -1417,7 +1417,7 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
 fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
     Some(match type_name {
         "ADDRESS" | "STORAGE_KEY" | "TXN_HASH" | "FELT" | "BLOCK_HASH" | "CHAIN_ID"
-        | "PROTOCOL_VERSION" => RustFieldType {
+        | "PROTOCOL_VERSION" | "ETH_ADDRESS" => RustFieldType {
             type_name: String::from("FieldElement"),
             serializer: Some(SerializerOverride::SerdeAs(String::from("UfeHex"))),
         },
@@ -1428,10 +1428,6 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
         "NUM_AS_HEX" => RustFieldType {
             type_name: String::from("u64"),
             serializer: Some(SerializerOverride::SerdeAs(String::from("NumAsHex"))),
-        },
-        "ETH_ADDRESS" => RustFieldType {
-            type_name: String::from("EthAddress"),
-            serializer: None,
         },
         "SIGNATURE" => RustFieldType {
             type_name: String::from("Vec<FieldElement>"),
