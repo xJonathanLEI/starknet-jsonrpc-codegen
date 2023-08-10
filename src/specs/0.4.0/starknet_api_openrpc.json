@@ -2451,8 +2451,7 @@
           },
           "finality_status": {
             "title": "Finality status",
-            "type": "string",
-            "enum": ["ACCEPTED_ON_L2"],
+            "$ref": "#/components/schemas/TXN_FINALITY_STATUS",
             "description": "The finality status of the transaction"
           },
           "execution_status": {
