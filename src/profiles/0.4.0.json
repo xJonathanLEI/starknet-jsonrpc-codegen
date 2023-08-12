@@ -248,6 +248,12 @@
             "name": "type",
             "value": "\"INVOKE\"",
             "is_query_version": false
+          },
+          {
+            "name": "finality_status",
+            "value": "&TransactionFinalityStatus::AcceptedOnL2",
+            "is_query_version": false,
+            "must_present_in_deser": true
           }
         ]
       },
@@ -258,6 +264,12 @@
             "name": "type",
             "value": "\"DECLARE\"",
             "is_query_version": false
+          },
+          {
+            "name": "finality_status",
+            "value": "&TransactionFinalityStatus::AcceptedOnL2",
+            "is_query_version": false,
+            "must_present_in_deser": true
           }
         ]
       },
@@ -268,6 +280,12 @@
             "name": "type",
             "value": "\"DEPLOY_ACCOUNT\"",
             "is_query_version": false
+          },
+          {
+            "name": "finality_status",
+            "value": "&TransactionFinalityStatus::AcceptedOnL2",
+            "is_query_version": false,
+            "must_present_in_deser": true
           }
         ]
       },
@@ -278,6 +296,12 @@
             "name": "type",
             "value": "\"DEPLOY\"",
             "is_query_version": false
+          },
+          {
+            "name": "finality_status",
+            "value": "&TransactionFinalityStatus::AcceptedOnL2",
+            "is_query_version": false,
+            "must_present_in_deser": true
           }
         ]
       },
@@ -288,6 +312,12 @@
             "name": "type",
             "value": "\"L1_HANDLER\"",
             "is_query_version": false
+          },
+          {
+            "name": "finality_status",
+            "value": "&TransactionFinalityStatus::AcceptedOnL2",
+            "is_query_version": false,
+            "must_present_in_deser": true
           }
         ]
       }

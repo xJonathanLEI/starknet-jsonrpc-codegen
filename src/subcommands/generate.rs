@@ -631,7 +631,11 @@ impl RustStruct {
                     optional: false,
                     fixed: Some(fixed.to_owned()),
                     arc_wrap: false,
-                    type_name: format!("Option<{}>", field.type_name),
+                    type_name: if fixed.must_present_in_deser {
+                        field.type_name.to_owned()
+                    } else {
+                        format!("Option<{}>", field.type_name)
+                    },
                     serde_rename: field.serde_rename.clone(),
                     serde_faltten: field.serde_faltten,
                     serializer: field.serializer.as_ref().map(|value| value.to_optional()),
@@ -670,6 +674,25 @@ impl RustStruct {
                     fixed_field.name
                 );
                 println!("        }};");
+                println!();
+            } else if fixed_field.must_present_in_deser {
+                let value_is_ref = fixed_field.value.starts_with('&');
+
+                println!(
+                    "        if {}tagged.{} != {} {{",
+                    if value_is_ref { "" } else { "&" },
+                    escape_name(&fixed_field.name),
+                    if value_is_ref {
+                        &fixed_field.value[1..]
+                    } else {
+                        &fixed_field.value
+                    }
+                );
+                println!(
+                    "            return Err(serde::de::Error::custom(\"invalid `{}` value\"));",
+                    fixed_field.name
+                );
+                println!("        }}");
                 println!();
             } else {
                 println!(

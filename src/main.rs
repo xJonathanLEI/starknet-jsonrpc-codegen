@@ -85,6 +85,8 @@ struct FixedField {
     name: String,
     value: String,
     is_query_version: bool,
+    #[serde(default)]
+    must_present_in_deser: bool,
 }
 
 #[allow(unused)]
