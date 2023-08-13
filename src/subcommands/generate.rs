@@ -1448,6 +1448,10 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             type_name: String::from("EthAddress"),
             serializer: None,
         },
+        "EXECUTION_RESULT" => RustFieldType {
+            type_name: String::from("ExecutionResult"),
+            serializer: None,
+        },
         "BLOCK_NUMBER" => RustFieldType {
             type_name: String::from("u64"),
             serializer: None,
