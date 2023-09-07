@@ -112,18 +112,12 @@ impl Generate {
         // does not provide additional models).
         let mut write_specs: Specification =
             serde_json::from_str(profile.raw_specs.write).expect("Failed to parse specification");
-        specs.methods.append(&mut write_specs.methods);
-        write_specs
-            .components
-            .errors
-            .iter()
-            .for_each(|(key, value)| {
-                if let indexmap::map::Entry::Vacant(entry) =
-                    specs.components.errors.entry(key.to_owned())
-                {
-                    entry.insert(value.to_owned());
-                }
-            });
+
+        let mut trace_specs: Specification =
+            serde_json::from_str(profile.raw_specs.trace).expect("Failed to parse specification");
+
+        specs.merge(&mut write_specs);
+        specs.merge(&mut trace_specs);
 
         println!("// AUTO-GENERATED CODE. DO NOT EDIT");
         println!("// To change the code generated, modify the codegen tool instead:");
@@ -1358,6 +1352,9 @@ fn get_schema_fields(
                 });
             }
         }
+        Schema::Schema { schema } => {
+            return get_schema_fields(schema, specs, fields, flatten_option);
+        }
         _ => {
             dbg!(schema);
             anyhow::bail!("Unexpected schema type when getting object fields");
@@ -1434,6 +1431,7 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
                 })
             }
         },
+        Schema::Schema { schema } => get_rust_type_for_field(schema, specs),
     }
 }
 

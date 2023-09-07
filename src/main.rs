@@ -47,6 +47,7 @@ enum SpecVersion {
 struct RawSpecs {
     main: &'static str,
     write: &'static str,
+    trace: &'static str,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -162,6 +163,7 @@ fn main() {
             raw_specs: RawSpecs {
                 main: include_str!("./specs/0.1.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.1.0/starknet_write_api.json"),
+                trace: include_str!("./specs/0.1.0/starknet_trace_api_openrpc.json"),
             },
             options: serde_json::from_str(include_str!("./profiles/0.1.0.json"))
                 .expect("Unable to parse profile options"),
@@ -171,6 +173,7 @@ fn main() {
             raw_specs: RawSpecs {
                 main: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.2.1/starknet_write_api.json"),
+                trace: include_str!("./specs/0.2.1/starknet_trace_api_openrpc.json"),
             },
             options: serde_json::from_str(include_str!("./profiles/0.2.1.json"))
                 .expect("Unable to parse profile options"),
@@ -180,6 +183,7 @@ fn main() {
             raw_specs: RawSpecs {
                 main: include_str!("./specs/0.3.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.3.0/starknet_write_api.json"),
+                trace: include_str!("./specs/0.3.0/starknet_trace_api_openrpc.json"),
             },
             options: serde_json::from_str(include_str!("./profiles/0.3.0.json"))
                 .expect("Unable to parse profile options"),
@@ -189,6 +193,7 @@ fn main() {
             raw_specs: RawSpecs {
                 main: include_str!("./specs/0.4.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.4.0/starknet_write_api.json"),
+                trace: include_str!("./specs/0.4.0/starknet_trace_api_openrpc.json"),
             },
             options: serde_json::from_str(include_str!("./profiles/0.4.0.json"))
                 .expect("Unable to parse profile options"),

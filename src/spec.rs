@@ -11,6 +11,28 @@ pub struct Specification {
     pub components: Components,
 }
 
+impl Specification {
+    pub fn merge(&mut self, other: &mut Self) {
+        self.methods.append(&mut other.methods);
+
+        other.components.schemas.iter().for_each(|(key, value)| {
+            if let indexmap::map::Entry::Vacant(entry) =
+                self.components.schemas.entry(key.to_owned())
+            {
+                entry.insert(value.to_owned());
+            }
+        });
+
+        other.components.errors.iter().for_each(|(key, value)| {
+            if let indexmap::map::Entry::Vacant(entry) =
+                self.components.errors.entry(key.to_owned())
+            {
+                entry.insert(value.to_owned());
+            }
+        });
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Info {
@@ -76,6 +98,7 @@ pub enum Schema {
     OneOf(OneOf),
     AllOf(AllOf),
     Primitive(Primitive),
+    Schema { schema: Box<Schema> },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,6 +179,8 @@ pub struct IntegerPrimitive {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ObjectPrimitive {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -169,6 +194,8 @@ pub struct ObjectPrimitive {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringPrimitive {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(rename = "$comment")]
@@ -205,6 +232,7 @@ impl Schema {
             Self::OneOf(schema) => schema.title.as_ref(),
             Self::AllOf(schema) => schema.title.as_ref(),
             Self::Primitive(schema) => schema.title(),
+            Self::Schema { schema } => schema.title(),
         }
     }
 
@@ -214,6 +242,7 @@ impl Schema {
             Self::OneOf(schema) => schema.description.as_ref(),
             Self::AllOf(schema) => schema.description.as_ref(),
             Self::Primitive(schema) => schema.description(),
+            Self::Schema { schema } => schema.description(),
         }
     }
 
@@ -223,6 +252,7 @@ impl Schema {
             Self::OneOf(_) => None,
             Self::AllOf(_) => None,
             Self::Primitive(schema) => schema.summary(),
+            Self::Schema { schema } => schema.summary(),
         }
     }
 }
