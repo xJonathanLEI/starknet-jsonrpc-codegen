@@ -1036,7 +1036,7 @@ fn resolve_types(
             request_fields.push(RustField {
                 description: param.description.clone(),
                 name: param.name.clone(),
-                optional: !param.required,
+                optional: !param.required.unwrap_or_default(),
                 fixed: None,
                 arc_wrap: false,
                 type_name: field_type.type_name,
