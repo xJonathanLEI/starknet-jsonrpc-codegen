@@ -4,7 +4,10 @@ use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 
-use crate::subcommands::{Generate, Print};
+use crate::{
+    spec::Specification,
+    subcommands::{Generate, Print},
+};
 
 mod spec;
 mod subcommands;
@@ -123,6 +126,41 @@ impl ValueEnum for SpecVersion {
             Self::V0_3_0 => Some(PossibleValue::new("0.3.0").alias("v0.3.0")),
             Self::V0_4_0 => Some(PossibleValue::new("0.4.0").alias("v0.4.0")),
         }
+    }
+}
+
+impl RawSpecs {
+    pub fn parse_full(&self) -> Result<Specification> {
+        let mut specs: Specification = serde_json::from_str(self.main)?;
+        let mut write_specs: Specification = serde_json::from_str(self.write)?;
+
+        specs.methods.append(&mut write_specs.methods);
+
+        for (key, value) in write_specs.components.schemas.iter() {
+            match specs.components.schemas.entry(key.to_owned()) {
+                indexmap::map::Entry::Occupied(entry) => match &value {
+                    spec::Schema::Ref(_) => {}
+                    _ => {
+                        if value != entry.get() {
+                            anyhow::bail!("duplicate entries must be ref or identical: {}", key);
+                        }
+                    }
+                },
+                indexmap::map::Entry::Vacant(entry) => {
+                    entry.insert(value.to_owned());
+                }
+            }
+        }
+
+        for (key, value) in write_specs.components.errors.iter() {
+            if let indexmap::map::Entry::Vacant(entry) =
+                specs.components.errors.entry(key.to_owned())
+            {
+                entry.insert(value.to_owned());
+            }
+        }
+
+        Ok(specs)
     }
 }
 

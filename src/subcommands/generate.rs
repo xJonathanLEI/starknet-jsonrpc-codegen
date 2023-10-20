@@ -105,25 +105,10 @@ impl Generate {
             .find(|profile| profile.version == self.spec)
             .expect("Unable to find profile");
 
-        let mut specs: Specification =
-            serde_json::from_str(profile.raw_specs.main).expect("Failed to parse specification");
-
-        // Merge specs (we only care about write methods and errors at the moment as the write specs
-        // does not provide additional models).
-        let mut write_specs: Specification =
-            serde_json::from_str(profile.raw_specs.write).expect("Failed to parse specification");
-        specs.methods.append(&mut write_specs.methods);
-        write_specs
-            .components
-            .errors
-            .iter()
-            .for_each(|(key, value)| {
-                if let indexmap::map::Entry::Vacant(entry) =
-                    specs.components.errors.entry(key.to_owned())
-                {
-                    entry.insert(value.to_owned());
-                }
-            });
+        let specs = profile
+            .raw_specs
+            .parse_full()
+            .expect("Failed to parse specification");
 
         println!("// AUTO-GENERATED CODE. DO NOT EDIT");
         println!("// To change the code generated, modify the codegen tool instead:");
