@@ -277,7 +277,7 @@
                 "description": "The events emitted in this invocation",
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/EVENT"
+                  "$ref": "#/components/schemas/EVENT_CONTENT"
                 }
               },
               "messages": {
@@ -306,7 +306,7 @@
       "FUNCTION_CALL": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FUNCTION_CALL"
       },
-      "EVENT": {
+      "EVENT_CONTENT": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EVENT_CONTENT"
       },
       "MSG_TO_L1": {
