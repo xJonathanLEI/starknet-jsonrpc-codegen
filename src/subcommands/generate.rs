@@ -1465,6 +1465,10 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             type_name: String::from("String"),
             serializer: None,
         },
+        "NESTED_CALL" => RustFieldType {
+            type_name: String::from("FunctionInvocation"),
+            serializer: None,
+        },
         _ => return None,
     })
 }
