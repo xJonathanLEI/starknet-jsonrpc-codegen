@@ -158,7 +158,8 @@
           "fee_transfer_invocation": {
             "$ref": "#/components/schemas/FUNCTION_INVOCATION"
           }
-        }
+        },
+        "required": ["execute_invocation"]
       },
       "DECLARE_TXN_TRACE": {
         "type": "object",
@@ -170,7 +171,8 @@
           "fee_transfer_invocation": {
             "$ref": "#/components/schemas/FUNCTION_INVOCATION"
           }
-        }
+        },
+        "required": []
       },
       "DEPLOY_ACCOUNT_TXN_TRACE": {
         "type": "object",
@@ -186,7 +188,8 @@
           "fee_transfer_invocation": {
             "$ref": "#/components/schemas/FUNCTION_INVOCATION"
           }
-        }
+        },
+        "required": ["constructor_invocation"]
       },
       "L1_HANDLER_TXN_TRACE": {
         "type": "object",
@@ -196,7 +199,8 @@
             "description": "the trace of the __execute__ call or constructor call, depending on the transaction type (none for declare transactions)",
             "$ref": "#/components/schemas/FUNCTION_INVOCATION"
           }
-        }
+        },
+        "required": ["function_invocation"]
       },
       "EXECUTE_INVOCATION": {
         "description": "the trace of the __execute__ call or constructor call, depending on the transaction type (none for declare transactions)",
