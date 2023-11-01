@@ -79,17 +79,15 @@
         "schema": {
           "type": "array",
           "items": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "transaction_trace": {
-                  "title": "the transaction's trace",
-                  "$ref": "#/components/schemas/TRANSACTION_TRACE"
-                },
-                "fee_estimation": {
-                  "title": "the transaction's resources and fee",
-                  "$ref": "#/components/schemas/FEE_ESTIMATE"
-                }
+            "type": "object",
+            "properties": {
+              "transaction_trace": {
+                "title": "the transaction's trace",
+                "$ref": "#/components/schemas/TRANSACTION_TRACE"
+              },
+              "fee_estimation": {
+                "title": "the transaction's resources and fee",
+                "$ref": "#/components/schemas/FEE_ESTIMATE"
               }
             }
           }
@@ -153,7 +151,6 @@
       "TRANSACTION_TRACE": {
         "oneOf": [
           {
-            "name": "INVOKE_TXN_TRACE",
             "type": "object",
             "description": "the execution trace of an invoke transaction",
             "properties": {
@@ -170,7 +167,7 @@
                     "type": "object",
                     "properties": {
                       "revert_reason": {
-                        "name": "revert reason",
+                        "title": "revert reason",
                         "description": "the revert reason for the failed execution",
                         "type": "string"
                       }
@@ -201,7 +198,6 @@
             ]
           },
           {
-            "name": "DECLARE_TXN_TRACE",
             "type": "object",
             "description": "the execution trace of a declare transaction",
             "properties": {
@@ -230,7 +226,6 @@
             ]
           },
           {
-            "name": "DEPLOY_ACCOUNT_TXN_TRACE",
             "type": "object",
             "description": "the execution trace of a deploy account transaction",
             "properties": {
@@ -264,7 +259,6 @@
             ]
           },
           {
-            "name": "L1_HANDLER_TXN_TRACE",
             "type": "object",
             "description": "the execution trace of an L1 handler transaction",
             "properties": {
@@ -369,7 +363,6 @@
         "enum": ["LIBRARY_CALL", "CALL"]
       },
       "ORDERED_EVENT": {
-        "type": "object",
         "title": "orderedEvent",
         "description": "an event alongside its order within the transaction",
         "allOf": [
@@ -379,7 +372,7 @@
               "order": {
                 "title": "order",
                 "description": "the order of the event within the transaction",
-                "type": "number"
+                "type": "integer"
               }
             }
           },
@@ -389,7 +382,6 @@
         ]
       },
       "ORDERED_MESSAGE": {
-        "type": "object",
         "title": "orderedMessage",
         "description": "a message alongside its order within the transaction",
         "allOf": [
@@ -399,7 +391,7 @@
               "order": {
                 "title": "order",
                 "description": "the order of the message within the transaction",
-                "type": "number"
+                "type": "integer"
               }
             }
           },

@@ -1292,7 +1292,6 @@
             "type": "array",
             "items": {
               "title": "transactions in block",
-              "type": "object",
               "allOf": [
                 {
                   "title": "transaction",
@@ -1350,7 +1349,7 @@
           },
           "l1_gas_price": {
             "title": "L1 gas price",
-            "descritpion": "The price of l1 gas in the block",
+            "description": "The price of l1 gas in the block",
             "$ref": "#/components/schemas/RESOURCE_PRICE"
           },
           "starknet_version": {
@@ -1392,7 +1391,7 @@
           },
           "l1_gas_price": {
             "title": "L1 gas price",
-            "descritpion": "The price of l1 gas in the block",
+            "description": "The price of l1 gas in the block",
             "$ref": "#/components/schemas/RESOURCE_PRICE"
           },
           "starknet_version": {
@@ -1926,6 +1925,7 @@
       "DEPLOY_ACCOUNT_TXN_V1": {
         "title": "Deploy account transaction",
         "description": "Deploys an account contract, charges fee from the pre-funded account addresses",
+        "type": "object",
         "properties": {
           "type": {
             "title": "Deploy account",
@@ -2030,6 +2030,7 @@
       "INVOKE_TXN_V0": {
         "title": "Invoke transaction V0",
         "description": "invokes a specific function in the desired contract (not necessarily an account)",
+        "type": "object",
         "properties": {
           "type": {
             "title": "Type",
@@ -2219,7 +2220,6 @@
           },
           "revert_reason": {
             "title": "Revert reason",
-            "name": "revert reason",
             "description": "the revert reason for the failed execution",
             "type": "string"
           },
@@ -2547,7 +2547,6 @@
           },
           "revert_reason": {
             "title": "Revert reason",
-            "name": "revert reason",
             "description": "the revert reason for the failed execution",
             "type": "string"
           },
@@ -3176,7 +3175,7 @@
               "type": "string"
             }
           },
-          "required": "revert_error"
+          "required": ["revert_error"]
         }
       }
     }
