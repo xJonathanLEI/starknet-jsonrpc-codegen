@@ -201,9 +201,7 @@
     "contentDescriptors": {},
     "schemas": {
       "NUM_AS_HEX": {
-        "title": "An integer number in hex format (0x...)",
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]+$"
+        "$ref": "./starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
       },
       "SIGNATURE": {
         "$ref": "./starknet_api_openrpc.json#/components/schemas/SIGNATURE"
