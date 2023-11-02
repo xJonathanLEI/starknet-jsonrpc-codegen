@@ -2763,7 +2763,8 @@
         "required": [
           "sierra_program",
           "contract_class_version",
-          "entry_points_by_type"
+          "entry_points_by_type",
+          "abi"
         ]
       },
       "ENTRY_POINTS_BY_TYPE": {
