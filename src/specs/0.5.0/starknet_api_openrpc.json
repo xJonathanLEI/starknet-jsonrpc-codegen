@@ -2565,10 +2565,6 @@
                 "$ref": "#/components/schemas/FELT",
                 "description": "The fee that was charged by the sequencer"
               },
-              "type": {
-                "title": "Transaction type",
-                "$ref": "#/components/schemas/TXN_TYPE"
-              },
               "messages_sent": {
                 "type": "array",
                 "title": "Messages sent",
