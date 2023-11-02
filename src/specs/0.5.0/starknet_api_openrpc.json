@@ -242,21 +242,7 @@
         "name": "result",
         "schema": {
           "title": "Transaction",
-          "allOf": [
-            {
-              "$ref": "#/components/schemas/TXN"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "transaction_hash": {
-                  "title": "transaction hash",
-                  "$ref": "#/components/schemas/TXN_HASH"
-                }
-              },
-              "required": ["transaction_hash"]
-            }
-          ]
+          "$ref": "#/components/schemas/TXN"
         }
       },
       "errors": [
@@ -294,21 +280,7 @@
         "name": "transactionResult",
         "schema": {
           "title": "Transaction",
-          "allOf": [
-            {
-              "$ref": "#/components/schemas/TXN"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "transaction_hash": {
-                  "title": "transaction hash",
-                  "$ref": "#/components/schemas/TXN_HASH"
-                }
-              },
-              "required": ["transaction_hash"]
-            }
-          ]
+          "$ref": "#/components/schemas/TXN"
         }
       },
       "errors": [
@@ -1310,22 +1282,7 @@
             "type": "array",
             "items": {
               "title": "transactions in block",
-              "allOf": [
-                {
-                  "title": "transaction",
-                  "$ref": "#/components/schemas/TXN"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "transaction_hash": {
-                      "title": "transaction hash",
-                      "$ref": "#/components/schemas/TXN_HASH"
-                    }
-                  },
-                  "required": ["transaction_hash"]
-                }
-              ]
+              "$ref": "#/components/schemas/TXN"
             }
           }
         },
@@ -1618,6 +1575,16 @@
         "allOf": [
           {
             "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
+            },
+            "required": ["transaction_hash"]
+          },
+          {
+            "type": "object",
             "title": "Declare txn v0",
             "properties": {
               "type": {
@@ -1665,6 +1632,16 @@
         "title": "Declare Contract Transaction V1",
         "description": "Declare Contract Transaction V1",
         "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
+            },
+            "required": ["transaction_hash"]
+          },
           {
             "type": "object",
             "title": "Declare txn v1",
@@ -1719,6 +1696,16 @@
         "title": "Declare Transaction V2",
         "description": "Declare Contract Transaction V2",
         "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
+            },
+            "required": ["transaction_hash"]
+          },
           {
             "type": "object",
             "title": "Declare txn v2",
@@ -1787,23 +1774,6 @@
             "$ref": "#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN"
           }
         ]
-      },
-      "BROADCASTED_INVOKE_TXN": {
-        "title": "Broadcasted invoke transaction",
-        "oneOf": [
-          {
-            "title": "Broadcasted invoke transaction V0",
-            "$ref": "#/components/schemas/INVOKE_TXN_V0"
-          },
-          {
-            "title": "Broadcasted invoke transaction V1",
-            "$ref": "#/components/schemas/INVOKE_TXN_V1"
-          }
-        ]
-      },
-      "BROADCASTED_DEPLOY_ACCOUNT_TXN": {
-        "title": "Broadcasted deploy account transaction",
-        "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN"
       },
       "BROADCASTED_DECLARE_TXN": {
         "title": "Broadcasted declare transaction",
@@ -1933,15 +1903,24 @@
       },
       "DEPLOY_ACCOUNT_TXN": {
         "title": "Deploy account transaction",
-        "description": "deploys a new account contract",
-        "oneOf": [
+        "description": "Deploys an account contract, charges fee from the pre-funded account addresses",
+        "allOf": [
           {
-            "title": "Deploy account V1",
-            "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN_V1"
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
+            },
+            "required": ["transaction_hash"]
+          },
+          {
+            "$ref": "#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN"
           }
         ]
       },
-      "DEPLOY_ACCOUNT_TXN_V1": {
+      "BROADCASTED_DEPLOY_ACCOUNT_TXN": {
         "title": "Deploy account transaction",
         "description": "Deploys an account contract, charges fee from the pre-funded account addresses",
         "type": "object",
@@ -2005,6 +1984,16 @@
         "allOf": [
           {
             "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
+            },
+            "required": ["transaction_hash"]
+          },
+          {
+            "type": "object",
             "title": "Deploy txn",
             "properties": {
               "version": {
@@ -2051,6 +2040,10 @@
         "description": "invokes a specific function in the desired contract (not necessarily an account)",
         "type": "object",
         "properties": {
+          "transaction_hash": {
+            "title": "transaction hash",
+            "$ref": "#/components/schemas/TXN_HASH"
+          },
           "type": {
             "title": "Type",
             "type": "string",
@@ -2088,6 +2081,7 @@
           }
         },
         "required": [
+          "transaction_hash",
           "type",
           "contract_address",
           "entry_point_selector",
@@ -2098,6 +2092,25 @@
         ]
       },
       "INVOKE_TXN_V1": {
+        "title": "Invoke transaction V1",
+        "description": "initiates a transaction from a given account",
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
+            },
+            "required": ["transaction_hash"]
+          },
+          {
+            "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN"
+          }
+        ]
+      },
+      "BROADCASTED_INVOKE_TXN": {
         "title": "Invoke transaction V1",
         "description": "initiates a transaction from a given account",
         "allOf": [
@@ -2169,6 +2182,16 @@
       "L1_HANDLER_TXN": {
         "title": "L1 Handler transaction",
         "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
+            },
+            "required": ["transaction_hash"]
+          },
           {
             "type": "object",
             "title": "L1 handler transaction",
