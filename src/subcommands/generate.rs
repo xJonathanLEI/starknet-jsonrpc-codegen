@@ -1469,6 +1469,10 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             type_name: String::from("FunctionInvocation"),
             serializer: None,
         },
+        "HASH_256" => RustFieldType {
+            type_name: String::from("Hash256"),
+            serializer: None,
+        },
         _ => return None,
     })
 }
@@ -1527,6 +1531,8 @@ fn to_starknet_rs_name(name: &str) -> String {
         "TypedParameter" => String::from("LegacyTypedParameter"),
         "DeprecatedEntryPointsByType" => String::from("LegacyEntryPointsByType"),
         "DeprecatedCairoEntryPoint" => String::from("LegacyContractEntryPoint"),
+        "DaMode" => String::from("DataAvailabilityMode"),
+        "TransactionStatus" => String::from("SequencerTransactionStatus"),
         _ => name,
     }
 }

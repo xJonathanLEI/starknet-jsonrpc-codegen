@@ -44,6 +44,7 @@ enum SpecVersion {
     V0_2_1,
     V0_3_0,
     V0_4_0,
+    V0_5_0,
 }
 
 #[derive(Debug, Clone)]
@@ -108,6 +109,8 @@ impl FromStr for SpecVersion {
             "0.1.0" | "v0.1.0" => Self::V0_1_0,
             "0.2.1" | "v0.2.1" => Self::V0_2_1,
             "0.3.0" | "v0.3.0" => Self::V0_3_0,
+            "0.4.0" | "v0.4.0" => Self::V0_4_0,
+            "0.5.0" | "v0.5.0" => Self::V0_5_0,
             _ => anyhow::bail!("unknown spec version: {}", s),
         })
     }
@@ -115,7 +118,13 @@ impl FromStr for SpecVersion {
 
 impl ValueEnum for SpecVersion {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::V0_1_0, Self::V0_2_1, Self::V0_3_0, Self::V0_4_0]
+        &[
+            Self::V0_1_0,
+            Self::V0_2_1,
+            Self::V0_3_0,
+            Self::V0_4_0,
+            Self::V0_5_0,
+        ]
     }
 
     fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
@@ -126,6 +135,7 @@ impl ValueEnum for SpecVersion {
             Self::V0_2_1 => Some(PossibleValue::new("0.2.1").alias("v0.2.1")),
             Self::V0_3_0 => Some(PossibleValue::new("0.3.0").alias("v0.3.0")),
             Self::V0_4_0 => Some(PossibleValue::new("0.4.0").alias("v0.4.0")),
+            Self::V0_5_0 => Some(PossibleValue::new("0.5.0").alias("v0.5.0")),
         }
     }
 }
@@ -201,7 +211,7 @@ impl ArcWrappingOptions {
 fn main() {
     let cli = Cli::parse();
 
-    let profiles: [GenerationProfile; 4] = [
+    let profiles: [GenerationProfile; 5] = [
         GenerationProfile {
             version: SpecVersion::V0_1_0,
             raw_specs: RawSpecs {
@@ -240,6 +250,16 @@ fn main() {
                 trace: include_str!("./specs/0.4.0/starknet_trace_api_openrpc.json"),
             },
             options: serde_json::from_str(include_str!("./profiles/0.4.0.json"))
+                .expect("Unable to parse profile options"),
+        },
+        GenerationProfile {
+            version: SpecVersion::V0_5_0,
+            raw_specs: RawSpecs {
+                main: include_str!("./specs/0.5.0/starknet_api_openrpc.json"),
+                write: include_str!("./specs/0.5.0/starknet_write_api.json"),
+                trace: include_str!("./specs/0.5.0/starknet_trace_api_openrpc.json"),
+            },
+            options: serde_json::from_str(include_str!("./profiles/0.5.0.json"))
                 .expect("Unable to parse profile options"),
         },
     ];

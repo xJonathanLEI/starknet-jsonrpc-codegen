@@ -64,6 +64,8 @@ pub struct MethodResult {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required: Option<bool>,
     pub schema: Schema,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
@@ -110,6 +112,8 @@ pub struct AllOf {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub all_of: Vec<Schema>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_properties: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -164,6 +168,8 @@ pub struct ObjectPrimitive {
     pub properties: IndexMap<String, Schema>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_properties: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
