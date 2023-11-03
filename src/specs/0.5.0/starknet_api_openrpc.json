@@ -1035,6 +1035,9 @@
         "type": "string",
         "pattern": "^0x[a-fA-F0-9]+$"
       },
+      "HASH_256": {
+        "$ref": "#/components/schemas/NUM_AS_HEX"
+      },
       "CHAIN_ID": {
         "title": "Chain id",
         "description": "Starknet chain id, given in hex representation.",
@@ -2464,7 +2467,7 @@
               "message_hash": {
                 "title": "Message hash",
                 "description": "The message hash as it appears on the L1 core contract",
-                "$ref": "#/components/schemas/NUM_AS_HEX"
+                "$ref": "#/components/schemas/HASH_256"
               }
             },
             "required": ["type", "message_hash"]
@@ -2491,7 +2494,7 @@
               "message_hash": {
                 "title": "Message hash",
                 "description": "The message hash as it appears on the L1 core contract",
-                "$ref": "#/components/schemas/NUM_AS_HEX"
+                "$ref": "#/components/schemas/HASH_256"
               }
             },
             "required": ["type", "message_hash"]
