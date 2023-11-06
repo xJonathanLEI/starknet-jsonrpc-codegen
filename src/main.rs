@@ -61,6 +61,7 @@ struct ProfileOptions {
     ignore_types: Vec<String>,
     fixed_field_types: FixedFieldsOptions,
     arc_wrapped_types: ArcWrappingOptions,
+    additional_derives_types: AdditionalDerivesOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +75,11 @@ struct ArcWrappingOptions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct AdditionalDerivesOptions {
+    additional_derives_types: Vec<RustTypesWithAdditionalDerives>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct RustTypeWithFixedFields {
     name: String,
     fields: Vec<FixedField>,
@@ -83,6 +89,12 @@ struct RustTypeWithFixedFields {
 struct RustTypeWithArcWrappedFields {
     name: String,
     fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RustTypesWithAdditionalDerives {
+    name: String,
+    derives: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
