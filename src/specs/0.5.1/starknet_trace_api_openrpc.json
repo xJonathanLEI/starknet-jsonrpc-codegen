@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.5.0",
+    "version": "0.5.1",
     "title": "Starknet Trace API",
     "license": {}
   },
@@ -169,13 +169,7 @@
             "enum": ["INVOKE"]
           }
         },
-        "required": [
-          "validate_invocation",
-          "execute_invocation",
-          "fee_transfer_invocation",
-          "state_diff",
-          "type"
-        ]
+        "required": ["type", "execute_invocation"]
       },
       "DECLARE_TXN_TRACE": {
         "type": "object",
@@ -198,12 +192,7 @@
             "enum": ["DECLARE"]
           }
         },
-        "required": [
-          "validate_invocation",
-          "fee_transfer_invocation",
-          "state_diff",
-          "type"
-        ]
+        "required": ["type"]
       },
       "DEPLOY_ACCOUNT_TXN_TRACE": {
         "type": "object",
@@ -230,13 +219,7 @@
             "enum": ["DEPLOY_ACCOUNT"]
           }
         },
-        "required": [
-          "validate_invocation",
-          "constructor_invocation",
-          "fee_transfer_invocation",
-          "state_diff",
-          "type"
-        ]
+        "required": ["type", "constructor_invocation"]
       },
       "L1_HANDLER_TXN_TRACE": {
         "type": "object",
@@ -246,13 +229,18 @@
             "description": "the trace of the __execute__ call or constructor call, depending on the transaction type (none for declare transactions)",
             "$ref": "#/components/schemas/FUNCTION_INVOCATION"
           },
+          "state_diff": {
+            "title": "state_diff",
+            "description": "the state diffs induced by the transaction",
+            "$ref": "#/components/schemas/STATE_DIFF"
+          },
           "type": {
             "title": "Type",
             "type": "string",
             "enum": ["L1_HANDLER"]
           }
         },
-        "required": ["function_invocation", "type"]
+        "required": ["type", "function_invocation"]
       },
       "EXECUTE_INVOCATION": {
         "description": "the trace of the __execute__ call or constructor call, depending on the transaction type (none for declare transactions)",
@@ -384,7 +372,7 @@
       },
       "CALL_TYPE": {
         "type": "string",
-        "enum": ["LIBRARY_CALL", "CALL"]
+        "enum": ["DELEGATE", "LIBRARY_CALL", "CALL"]
       },
       "ORDERED_EVENT": {
         "title": "orderedEvent",
