@@ -378,5 +378,13 @@
         "fields": ["contract_class"]
       }
     ]
+  },
+  "additional_derives_types": {
+    "additional_derives_types": [
+      {
+        "name": "EmittedEvent",
+        "derives": ["Eq", "PartialEq"]
+      }
+    ]
   }
 }

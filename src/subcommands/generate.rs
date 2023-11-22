@@ -2,11 +2,12 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use clap::Parser;
+use indexmap::IndexSet;
 use regex::Regex;
 
 use crate::{
-    built_info, spec::*, ArcWrappingOptions, FixedField, FixedFieldsOptions, FlattenOption,
-    GenerationProfile, SpecVersion,
+    built_info, spec::*, AdditionalDerivesOptions, ArcWrappingOptions, FixedField,
+    FixedFieldsOptions, FlattenOption, GenerationProfile, SpecVersion,
 };
 
 #[derive(Debug, Parser)]
@@ -46,12 +47,14 @@ struct RustStruct {
     serde_as_array: bool,
     extra_ref_type: bool,
     fields: Vec<RustField>,
+    derives: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
 struct RustEnum {
     is_error: bool,
     variants: Vec<RustVariant>,
+    derives: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -73,7 +76,7 @@ struct RustField {
     arc_wrap: bool,
     type_name: String,
     serde_rename: Option<String>,
-    serde_faltten: bool,
+    serde_flatten: bool,
     serializer: Option<SerializerOverride>,
 }
 
@@ -137,6 +140,7 @@ impl Generate {
             &profile.options.ignore_types,
             &profile.options.fixed_field_types,
             &profile.options.arc_wrapped_types,
+            &profile.options.additional_derives_types,
         )
         .expect("Failed to resolve types");
 
@@ -290,7 +294,7 @@ impl RustStruct {
                 arc_wrap: false,
                 type_name: "bool".into(),
                 serde_rename: None,
-                serde_faltten: false,
+                serde_flatten: false,
                 serializer: None,
             });
         }
@@ -306,10 +310,10 @@ impl RustStruct {
             println!("#[serde_as]");
         }
         if derive_serde {
-            println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+            print_rust_derives(&self.with_serde_derives());
             println!("#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]");
         } else {
-            println!("#[derive(Debug, Clone)]");
+            print_rust_derives(&self.with_default_derives());
         }
         println!("pub struct {name} {{");
 
@@ -622,7 +626,7 @@ impl RustStruct {
                         format!("Option<{}>", field.type_name)
                     },
                     serde_rename: field.serde_rename.clone(),
-                    serde_faltten: field.serde_faltten,
+                    serde_flatten: field.serde_flatten,
                     serializer: field.serializer.as_ref().map(|value| value.to_optional()),
                 }
                 .def_lines(12, true, false, true),
@@ -723,11 +727,25 @@ impl RustStruct {
         println!("    }}");
         println!("}}");
     }
+
+    fn with_default_derives(&self) -> IndexSet<String> {
+        let mut derives: IndexSet<_> = self.derives.iter().cloned().collect();
+        derives.insert("Debug".into());
+        derives.insert("Clone".into());
+        derives
+    }
+
+    fn with_serde_derives(&self) -> IndexSet<String> {
+        let mut derives = self.with_default_derives();
+        derives.insert("Serialize".into());
+        derives.insert("Deserialize".into());
+        derives
+    }
 }
 
 impl RustEnum {
     pub fn render_stdout(&self, name: &str) {
-        println!("#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]");
+        print_rust_derives(&self.with_default_derives());
         println!("pub enum {name} {{");
 
         for variant in self.variants.iter() {
@@ -768,6 +786,18 @@ impl RustEnum {
 
     pub fn need_custom_serde(&self) -> bool {
         false
+    }
+
+    fn with_default_derives(&self) -> IndexSet<String> {
+        let mut derives: IndexSet<_> = self.derives.iter().cloned().collect();
+        derives.insert("Debug".into());
+        derives.insert("Clone".into());
+        derives.insert("Copy".into());
+        derives.insert("PartialEq".into());
+        derives.insert("Eq".into());
+        derives.insert("Serialize".into());
+        derives.insert("Deserialize".into());
+        derives
     }
 }
 
@@ -855,7 +885,7 @@ impl RustField {
                     "{leading_spaces}#[serde(rename = \"{serde_rename}\")]"
                 ));
             }
-            if self.serde_faltten {
+            if self.serde_flatten {
                 lines.push(format!("{leading_spaces}#[serde(flatten)]"));
             }
             if let Some(serde_as) = &self.serializer {
@@ -939,6 +969,7 @@ fn resolve_types(
     ignore_types: &[String],
     fixed_fields: &FixedFieldsOptions,
     arc_wrapping: &ArcWrappingOptions,
+    additional_derives_types: &AdditionalDerivesOptions,
 ) -> Result<TypeResolutionResult> {
     let mut types = vec![];
     let mut req_types: Vec<RustType> = vec![];
@@ -969,7 +1000,11 @@ fn resolve_types(
             continue;
         }
 
-        let mut content = match schema_to_rust_type_kind(specs, entity, flatten_option)? {
+        let derives = additional_derives_types
+            .find_additional_derives(&rusty_name)
+            .unwrap_or_default();
+
+        let mut content = match schema_to_rust_type_kind(specs, entity, flatten_option, derives)? {
             Some(content) => content,
             None => {
                 not_implemented_types.push(name.to_owned());
@@ -1014,6 +1049,9 @@ fn resolve_types(
                     ErrorType::Reference(_) => todo!("Error redirection not implemented"),
                 })
                 .collect(),
+            derives: additional_derives_types
+                .find_additional_derives("StarknetError")
+                .unwrap_or_default(),
         }),
     });
 
@@ -1032,20 +1070,22 @@ fn resolve_types(
                 arc_wrap: false,
                 type_name: field_type.type_name,
                 serde_rename: None,
-                serde_faltten: false,
+                serde_flatten: false,
                 serializer: field_type.serializer,
             });
         }
 
+        let rusty_name = format!(
+            "{}Request",
+            to_starknet_rs_name(&camel_to_snake_case(
+                method.name.trim_start_matches("starknet_")
+            ))
+        );
+
         let request_type = RustType {
             title: Some(format!("Request for method {}", method.name)),
             description: None,
-            name: format!(
-                "{}Request",
-                to_starknet_rs_name(&camel_to_snake_case(
-                    method.name.trim_start_matches("starknet_")
-                ))
-            ),
+            name: rusty_name.clone(),
             content: if request_fields.is_empty() {
                 RustTypeKind::Unit(RustUnit {
                     serde_as_array: true,
@@ -1055,6 +1095,9 @@ fn resolve_types(
                     serde_as_array: true,
                     extra_ref_type: true,
                     fields: request_fields,
+                    derives: additional_derives_types
+                        .find_additional_derives(&rusty_name)
+                        .unwrap_or_default(),
                 })
             },
         };
@@ -1078,6 +1121,7 @@ fn schema_to_rust_type_kind(
     specs: &Specification,
     entity: &Schema,
     flatten_option: &FlattenOption,
+    derives: Vec<String>,
 ) -> Result<Option<RustTypeKind>> {
     Ok(match entity {
         Schema::Ref(reference) => {
@@ -1092,6 +1136,7 @@ fn schema_to_rust_type_kind(
                 serde_as_array: false,
                 extra_ref_type: false,
                 fields,
+                derives,
             }))
         }
         Schema::OneOf(_) => None,
@@ -1102,6 +1147,7 @@ fn schema_to_rust_type_kind(
                 serde_as_array: false,
                 extra_ref_type: false,
                 fields,
+                derives,
             }))
         }
         Schema::Primitive(Primitive::String(value)) => match &value.r#enum {
@@ -1116,6 +1162,7 @@ fn schema_to_rust_type_kind(
                         error_text: None,
                     })
                     .collect(),
+                derives,
             })),
             None => {
                 anyhow::bail!("Unexpected non-enum string type when generating struct/enum");
@@ -1282,7 +1329,7 @@ fn get_schema_fields(
                                 arc_wrap: false,
                                 type_name: to_starknet_rs_name(reference.name()),
                                 serde_rename: None,
-                                serde_faltten: true,
+                                serde_flatten: true,
                                 serializer: None,
                             });
                         }
@@ -1338,7 +1385,7 @@ fn get_schema_fields(
                     arc_wrap: false,
                     type_name,
                     serde_rename: rename,
-                    serde_faltten: false,
+                    serde_flatten: false,
                     serializer,
                 });
             }
@@ -1645,5 +1692,11 @@ fn escape_name(name: &str) -> &str {
         "r#type"
     } else {
         name
+    }
+}
+
+fn print_rust_derives(derives: &IndexSet<String>) {
+    if !derives.is_empty() {
+        println!("#[derive({})]", itertools::join(derives, ", "))
     }
 }

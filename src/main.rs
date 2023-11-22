@@ -61,6 +61,7 @@ struct ProfileOptions {
     ignore_types: Vec<String>,
     fixed_field_types: FixedFieldsOptions,
     arc_wrapped_types: ArcWrappingOptions,
+    additional_derives_types: AdditionalDerivesOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +75,11 @@ struct ArcWrappingOptions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct AdditionalDerivesOptions {
+    additional_derives_types: Vec<RustTypesWithAdditionalDerives>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct RustTypeWithFixedFields {
     name: String,
     fields: Vec<FixedField>,
@@ -83,6 +89,12 @@ struct RustTypeWithFixedFields {
 struct RustTypeWithArcWrappedFields {
     name: String,
     fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RustTypesWithAdditionalDerives {
+    name: String,
+    derives: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -203,6 +215,18 @@ impl ArcWrappingOptions {
                 item.fields.iter().any(|field| field == field_name)
             } else {
                 false
+            }
+        })
+    }
+}
+
+impl AdditionalDerivesOptions {
+    fn find_additional_derives(&self, type_name: &str) -> Option<Vec<String>> {
+        self.additional_derives_types.iter().find_map(|item| {
+            if item.name == type_name {
+                Some(item.derives.clone())
+            } else {
+                None
             }
         })
     }

@@ -8,5 +8,8 @@
   },
   "arc_wrapped_types": {
     "arc_wrapped_types": []
+  },
+  "additional_derives_types": {
+    "additional_derives_types": []
   }
 }
