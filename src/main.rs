@@ -220,6 +220,18 @@ impl ArcWrappingOptions {
     }
 }
 
+impl AdditionalDerivesOptions {
+    fn find_additional_derives(&self, type_name: &str) -> Option<Vec<String>> {
+        self.additional_derives_types.iter().find_map(|item| {
+            if item.name == type_name {
+                Some(item.derives.clone())
+            } else {
+                None
+            }
+        })
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
 

@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use clap::Parser;
+use indexmap::IndexSet;
 use regex::Regex;
 
 use crate::{
@@ -309,12 +310,10 @@ impl RustStruct {
             println!("#[serde_as]");
         }
         if derive_serde {
-            let derives = self.with_serde_derives();
-            print_rust_derives(derives);
+            print_rust_derives(&self.with_serde_derives());
             println!("#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]");
         } else {
-            let derives = self.with_default_derives();
-            print_rust_derives(derives);
+            print_rust_derives(&self.with_default_derives());
         }
         println!("pub struct {name} {{");
 
@@ -729,25 +728,24 @@ impl RustStruct {
         println!("}}");
     }
 
-    fn with_default_derives(&self) -> Vec<String> {
-        let mut derives = self.derives.clone();
-        insert_if_not_present(&mut derives, String::from("Debug"));
-        insert_if_not_present(&mut derives, String::from("Clone"));
+    fn with_default_derives(&self) -> IndexSet<String> {
+        let mut derives: IndexSet<_> = self.derives.iter().cloned().collect();
+        derives.insert("Debug".into());
+        derives.insert("Clone".into());
         derives
     }
 
-    fn with_serde_derives(&self) -> Vec<String> {
+    fn with_serde_derives(&self) -> IndexSet<String> {
         let mut derives = self.with_default_derives();
-        insert_if_not_present(&mut derives, String::from("Serialize"));
-        insert_if_not_present(&mut derives, String::from("Deserialize"));
+        derives.insert("Serialize".into());
+        derives.insert("Deserialize".into());
         derives
     }
 }
 
 impl RustEnum {
     pub fn render_stdout(&self, name: &str) {
-        let derives = self.with_default_derives();
-        print_rust_derives(derives);
+        print_rust_derives(&self.with_default_derives());
         println!("pub enum {name} {{");
 
         for variant in self.variants.iter() {
@@ -790,15 +788,15 @@ impl RustEnum {
         false
     }
 
-    fn with_default_derives(&self) -> Vec<String> {
-        let mut derives = self.derives.clone();
-        insert_if_not_present(&mut derives, String::from("Debug"));
-        insert_if_not_present(&mut derives, String::from("Clone"));
-        insert_if_not_present(&mut derives, String::from("Copy"));
-        insert_if_not_present(&mut derives, String::from("PartialEq"));
-        insert_if_not_present(&mut derives, String::from("Eq"));
-        insert_if_not_present(&mut derives, String::from("Serialize"));
-        insert_if_not_present(&mut derives, String::from("Deserialize"));
+    fn with_default_derives(&self) -> IndexSet<String> {
+        let mut derives: IndexSet<_> = self.derives.iter().cloned().collect();
+        derives.insert("Debug".into());
+        derives.insert("Clone".into());
+        derives.insert("Copy".into());
+        derives.insert("PartialEq".into());
+        derives.insert("Eq".into());
+        derives.insert("Serialize".into());
+        derives.insert("Deserialize".into());
         derives
     }
 }
@@ -1003,10 +1001,7 @@ fn resolve_types(
         }
 
         let derives = additional_derives_types
-            .additional_derives_types
-            .iter()
-            .find(|typ| typ.name == rusty_name)
-            .map(|t| t.derives.clone())
+            .find_additional_derives(&rusty_name)
             .unwrap_or_default();
 
         let mut content = match schema_to_rust_type_kind(specs, entity, flatten_option, derives)? {
@@ -1055,10 +1050,7 @@ fn resolve_types(
                 })
                 .collect(),
             derives: additional_derives_types
-                .additional_derives_types
-                .iter()
-                .find(|typ| typ.name == "StarknetError")
-                .map(|t| t.derives.clone())
+                .find_additional_derives("StarknetError")
                 .unwrap_or_default(),
         }),
     });
@@ -1104,10 +1096,7 @@ fn resolve_types(
                     extra_ref_type: true,
                     fields: request_fields,
                     derives: additional_derives_types
-                        .additional_derives_types
-                        .iter()
-                        .find(|typ| typ.name == rusty_name)
-                        .map(|t| t.derives.clone())
+                        .find_additional_derives(&rusty_name)
                         .unwrap_or_default(),
                 })
             },
@@ -1706,14 +1695,8 @@ fn escape_name(name: &str) -> &str {
     }
 }
 
-fn print_rust_derives(derives: Vec<String>) {
+fn print_rust_derives(derives: &IndexSet<String>) {
     if !derives.is_empty() {
-        println!("#[derive({})]", derives.join(", "))
-    }
-}
-
-fn insert_if_not_present(vec: &mut Vec<String>, val: String) {
-    if !vec.contains(&val) {
-        vec.push(val);
+        println!("#[derive({})]", itertools::join(derives, ", "))
     }
 }
