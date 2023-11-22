@@ -333,7 +333,7 @@ impl RustStruct {
             println!();
 
             print_doc(&format!("Reference version of [{}].", name), 0);
-            println!("#[derive(Debug, Clone)]");
+            println!("#[derive(Debug, Clone, PartialEq, Eq)]");
             println!("pub struct {name}Ref<'a> {{");
 
             for field in fields.iter().filter(|field| field.fixed.is_none()) {
@@ -732,6 +732,8 @@ impl RustStruct {
         let mut derives: IndexSet<_> = self.derives.iter().cloned().collect();
         derives.insert("Debug".into());
         derives.insert("Clone".into());
+        derives.insert("PartialEq".into());
+        derives.insert("Eq".into());
         derives
     }
 
@@ -803,7 +805,7 @@ impl RustEnum {
 
 impl RustWrapper {
     pub fn render_stdout(&self, name: &str) {
-        println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+        println!("#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]");
         println!("pub struct {}(pub {});", name, self.type_name);
     }
 
@@ -815,9 +817,9 @@ impl RustWrapper {
 impl RustUnit {
     pub fn render_stdout(&self, name: &str) {
         if self.need_custom_serde() {
-            println!("#[derive(Debug, Clone)]");
+            println!("#[derive(Debug, Clone, PartialEq, Eq)]");
         } else {
-            println!("#[derive(Debug, Clone, Serialize, Deserialize)]");
+            println!("#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]");
         }
         println!("pub struct {};", name);
     }

@@ -314,11 +314,6 @@
     ]
   },
   "additional_derives_types": {
-    "additional_derives_types": [
-      {
-        "name": "EmittedEvent",
-        "derives": ["Eq", "PartialEq"]
-      }
-    ]
+    "additional_derives_types": []
   }
 }
