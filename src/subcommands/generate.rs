@@ -85,7 +85,6 @@ struct RustVariant {
     description: Option<String>,
     name: String,
     serde_name: Option<String>,
-    #[allow(unused)]
     error_text: Option<String>,
 }
 
@@ -777,6 +776,26 @@ impl RustEnum {
                 println!(
                     "            Self::{} => write!(f, \"{}\"),",
                     variant.name, variant.name
+                );
+            }
+
+            println!("        }}");
+            println!("    }}");
+            println!("}}");
+
+            println!();
+            println!("impl {name} {{");
+            println!("    pub fn message(&self) -> &'static str {{");
+            println!("        match self {{");
+
+            for variant in self.variants.iter() {
+                println!(
+                    "            Self::{} => \"{}\",",
+                    variant.name,
+                    variant
+                        .error_text
+                        .as_ref()
+                        .expect("error message to be present for errors")
                 );
             }
 
