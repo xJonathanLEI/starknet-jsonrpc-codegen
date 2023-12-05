@@ -3171,6 +3171,18 @@
           "bitwise_builtin_applications",
           "keccak_builtin_applications"
         ]
+      },
+      "CONTRACT_ERROR_DATA": {
+        "type": "object",
+        "description": "More data about the execution failure",
+        "properties": {
+          "revert_error": {
+            "title": "revert error",
+            "description": "a string encoding the execution trace up to the point of failure",
+            "type": "string"
+          }
+        },
+        "required": ["revert_error"]
       }
     },
     "errors": {
@@ -3218,16 +3230,7 @@
         "code": 40,
         "message": "Contract error",
         "data": {
-          "type": "object",
-          "description": "More data about the execution failure",
-          "properties": {
-            "revert_error": {
-              "title": "revert error",
-              "description": "a string encoding the execution trace up to the point of failure",
-              "type": "string"
-            }
-          },
-          "required": ["revert_error"]
+          "$ref": "#/components/schemas/CONTRACT_ERROR_DATA"
         }
       }
     }

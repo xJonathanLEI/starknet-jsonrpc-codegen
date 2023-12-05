@@ -435,6 +435,15 @@
       },
       "STATE_DIFF": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/STATE_DIFF"
+      },
+      "NO_TRACE_AVAILABLE_ERROR_DATA": {
+        "type": "object",
+        "description": "Extra information on why trace is not available. Either it wasn't executed yet (RECEIVED), or the transaction failed (REJECTED)",
+        "properties": {
+          "status": {
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_STATUS"
+          }
+        }
       }
     },
     "errors": {
@@ -442,14 +451,7 @@
         "code": 10,
         "message": "No trace available for transaction",
         "data": {
-          "type": "object",
-          "description": "Extra information on why trace is not available. Either it wasn't executed yet (RECEIVED), or the transaction failed (REJECTED)",
-          "properties": {
-            "status": {
-              "type": "string",
-              "enum": ["RECEIVED", "REJECTED"]
-            }
-          }
+          "$ref": "#/components/schemas/NO_TRACE_AVAILABLE_ERROR_DATA"
         }
       },
       "CONTRACT_NOT_FOUND": {
