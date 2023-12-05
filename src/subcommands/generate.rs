@@ -86,6 +86,7 @@ struct RustVariant {
     name: String,
     serde_name: Option<String>,
     error_text: Option<String>,
+    wraps: Option<RustFieldType>,
 }
 
 #[derive(Debug, Clone)]
@@ -757,7 +758,14 @@ impl RustEnum {
             if let Some(rename) = &variant.serde_name {
                 println!("    #[serde(rename = \"{rename}\")]");
             }
-            println!("    {},", variant.name);
+            match &variant.wraps {
+                Some(inner) => {
+                    println!("    {}({}),", variant.name, inner.type_name);
+                }
+                None => {
+                    println!("    {},", variant.name);
+                }
+            }
         }
 
         println!("}}");
@@ -774,8 +782,10 @@ impl RustEnum {
 
             for variant in self.variants.iter() {
                 println!(
-                    "            Self::{} => write!(f, \"{}\"),",
-                    variant.name, variant.name
+                    "            Self::{}{} => write!(f, \"{}\"),",
+                    variant.name,
+                    if variant.wraps.is_some() { "(_)" } else { "" },
+                    variant.name
                 );
             }
 
@@ -790,8 +800,9 @@ impl RustEnum {
 
             for variant in self.variants.iter() {
                 println!(
-                    "            Self::{} => \"{}\",",
+                    "            Self::{}{} => \"{}\",",
                     variant.name,
+                    if variant.wraps.is_some() { "(_)" } else { "" },
                     variant
                         .error_text
                         .as_ref()
@@ -813,7 +824,12 @@ impl RustEnum {
         let mut derives: IndexSet<_> = self.derives.iter().cloned().collect();
         derives.insert("Debug".into());
         derives.insert("Clone".into());
-        derives.insert("Copy".into());
+
+        // Implement `Copy` when no variant wraps other types
+        if !self.variants.iter().any(|variant| variant.wraps.is_some()) {
+            derives.insert("Copy".into());
+        }
+
         derives.insert("PartialEq".into());
         derives.insert("Eq".into());
         derives.insert("Serialize".into());
@@ -1061,15 +1077,33 @@ fn resolve_types(
                 .errors
                 .iter()
                 .map(|(name, err)| match err {
-                    ErrorType::Error(err) => RustVariant {
+                    ErrorType::Error(err) => Ok(RustVariant {
                         description: Some(err.message.clone()),
                         name: to_starknet_rs_name(name),
                         serde_name: None,
                         error_text: Some(err.message.clone()),
-                    },
+                        wraps: match &err.data {
+                            Some(err_data) => match err_data {
+                                Schema::Ref(value) => Some(RustFieldType {
+                                    type_name: to_starknet_rs_name(value.name()),
+                                    serializer: None,
+                                }),
+                                Schema::Primitive(_) => {
+                                    Some(get_rust_type_for_field(err_data, specs)?)
+                                }
+                                Schema::OneOf(_) => anyhow::bail!(
+                                    "Anonymous oneOf types should not be used for error data"
+                                ),
+                                Schema::AllOf(_) => anyhow::bail!(
+                                    "Anonymous allOf types should not be used for error data"
+                                ),
+                            },
+                            None => None,
+                        },
+                    }),
                     ErrorType::Reference(_) => todo!("Error redirection not implemented"),
                 })
-                .collect(),
+                .collect::<Result<_>>()?,
             derives: additional_derives_types
                 .find_additional_derives("StarknetError")
                 .unwrap_or_default(),
@@ -1181,6 +1215,7 @@ fn schema_to_rust_type_kind(
                         name: to_starknet_rs_name(item),
                         serde_name: Some(item.to_owned()),
                         error_text: None,
+                        wraps: None,
                     })
                     .collect(),
                 derives,
