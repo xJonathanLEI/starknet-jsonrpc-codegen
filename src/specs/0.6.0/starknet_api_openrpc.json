@@ -1659,8 +1659,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x0", "0x100000000000000000000000000000000"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -1709,8 +1708,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x1", "0x100000000000000000000000000000001"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -1769,8 +1767,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x2", "0x100000000000000000000000000000002"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -1825,8 +1822,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x3", "0x100000000000000000000000000000003"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -1959,8 +1955,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x1", "0x100000000000000000000000000000001"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -2019,8 +2014,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x2", "0x100000000000000000000000000000002"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -2075,8 +2069,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x3", "0x100000000000000000000000000000003"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -2178,8 +2171,7 @@
           "version": {
             "title": "Version",
             "description": "Version of the transaction scheme",
-            "type": "string",
-            "enum": ["0x1", "0x100000000000000000000000000000001"]
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "signature": {
             "title": "Signature",
@@ -2232,8 +2224,7 @@
           "version": {
             "title": "Version",
             "description": "Version of the transaction scheme",
-            "type": "string",
-            "enum": ["0x3", "0x100000000000000000000000000000003"]
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "signature": {
             "title": "Signature",
@@ -2370,8 +2361,7 @@
           "version": {
             "title": "Version",
             "description": "Version of the transaction scheme",
-            "type": "string",
-            "enum": ["0x0", "0x100000000000000000000000000000000"]
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "signature": {
             "title": "Signature",
@@ -2436,8 +2426,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x1", "0x100000000000000000000000000000001"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
@@ -2487,8 +2476,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x3", "0x100000000000000000000000000000003"]
+                "$ref": "#/components/schemas/NUM_AS_HEX"
               },
               "signature": {
                 "title": "Signature",
