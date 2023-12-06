@@ -767,16 +767,7 @@
           "required": true,
           "schema": {
             "title": "Events request",
-            "allOf": [
-              {
-                "title": "Event filter",
-                "$ref": "#/components/schemas/EVENT_FILTER"
-              },
-              {
-                "title": "Result page request",
-                "$ref": "#/components/schemas/RESULT_PAGE_REQUEST"
-              }
-            ]
+            "$ref": "#/components/schemas/EVENT_FILTER_WITH_PAGE"
           }
         }
       ],
@@ -847,6 +838,19 @@
   "components": {
     "contentDescriptors": {},
     "schemas": {
+      "EVENT_FILTER_WITH_PAGE": {
+        "title": "Events request",
+        "allOf": [
+          {
+            "title": "Event filter",
+            "$ref": "#/components/schemas/EVENT_FILTER"
+          },
+          {
+            "title": "Result page request",
+            "$ref": "#/components/schemas/RESULT_PAGE_REQUEST"
+          }
+        ]
+      },
       "EVENTS_CHUNK": {
         "title": "Events chunk",
         "type": "object",
@@ -1125,20 +1129,7 @@
             "type": "array",
             "items": {
               "title": "New classes",
-              "type": "object",
-              "description": "The declared class hash and compiled class hash",
-              "properties": {
-                "class_hash": {
-                  "title": "Class hash",
-                  "description": "The hash of the declared class",
-                  "$ref": "#/components/schemas/FELT"
-                },
-                "compiled_class_hash": {
-                  "title": "Compiled class hash",
-                  "description": "The Cairo assembly hash corresponding to the declared class",
-                  "$ref": "#/components/schemas/FELT"
-                }
-              }
+              "$ref": "#/components/schemas/DECLARED_CLASS_ITEM"
             }
           },
           "deployed_contracts": {
@@ -1155,19 +1146,7 @@
             "items": {
               "description": "The list of contracts whose class was replaced",
               "title": "Replaced class",
-              "type": "object",
-              "properties": {
-                "contract_address": {
-                  "title": "Contract address",
-                  "description": "The address of the contract whose class was replaced",
-                  "$ref": "#/components/schemas/ADDRESS"
-                },
-                "class_hash": {
-                  "title": "Class hash",
-                  "description": "The new class hash",
-                  "$ref": "#/components/schemas/FELT"
-                }
-              }
+              "$ref": "#/components/schemas/REPLACED_CLASS_ITEM"
             }
           },
           "nonces": {
@@ -1176,19 +1155,7 @@
             "items": {
               "title": "Nonce update",
               "description": "The updated nonce per contract address",
-              "type": "object",
-              "properties": {
-                "contract_address": {
-                  "title": "Contract address",
-                  "description": "The address of the contract",
-                  "$ref": "#/components/schemas/ADDRESS"
-                },
-                "nonce": {
-                  "title": "Nonce",
-                  "description": "The nonce for the given address at the end of the block",
-                  "$ref": "#/components/schemas/FELT"
-                }
-              }
+              "$ref": "#/components/schemas/NONCE_UPDATE"
             }
           }
         },
@@ -1200,6 +1167,57 @@
           "deployed_contracts",
           "nonces"
         ]
+      },
+      "DECLARED_CLASS_ITEM": {
+        "title": "New classes",
+        "type": "object",
+        "description": "The declared class hash and compiled class hash",
+        "properties": {
+          "class_hash": {
+            "title": "Class hash",
+            "description": "The hash of the declared class",
+            "$ref": "#/components/schemas/FELT"
+          },
+          "compiled_class_hash": {
+            "title": "Compiled class hash",
+            "description": "The Cairo assembly hash corresponding to the declared class",
+            "$ref": "#/components/schemas/FELT"
+          }
+        }
+      },
+      "REPLACED_CLASS_ITEM": {
+        "description": "The list of contracts whose class was replaced",
+        "title": "Replaced class",
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "title": "Contract address",
+            "description": "The address of the contract whose class was replaced",
+            "$ref": "#/components/schemas/ADDRESS"
+          },
+          "class_hash": {
+            "title": "Class hash",
+            "description": "The new class hash",
+            "$ref": "#/components/schemas/FELT"
+          }
+        }
+      },
+      "NONCE_UPDATE": {
+        "title": "Nonce update",
+        "description": "The updated nonce per contract address",
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "title": "Contract address",
+            "description": "The address of the contract",
+            "$ref": "#/components/schemas/ADDRESS"
+          },
+          "nonce": {
+            "title": "Nonce",
+            "description": "The nonce for the given address at the end of the block",
+            "$ref": "#/components/schemas/FELT"
+          }
+        }
       },
       "PENDING_STATE_UPDATE": {
         "title": "Pending state update",
@@ -1538,23 +1556,27 @@
             "type": "array",
             "items": {
               "title": "Storage diff item",
-              "type": "object",
-              "properties": {
-                "key": {
-                  "title": "Key",
-                  "description": "The key of the changed value",
-                  "$ref": "#/components/schemas/FELT"
-                },
-                "value": {
-                  "title": "Value",
-                  "description": "The new value applied to the given address",
-                  "$ref": "#/components/schemas/FELT"
-                }
-              }
+              "$ref": "#/components/schemas/STORAGE_ENTRY"
             }
           }
         },
         "required": ["address", "storage_entries"]
+      },
+      "STORAGE_ENTRY": {
+        "title": "Storage diff item",
+        "type": "object",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "description": "The key of the changed value",
+            "$ref": "#/components/schemas/FELT"
+          },
+          "value": {
+            "title": "Value",
+            "description": "The new value applied to the given address",
+            "$ref": "#/components/schemas/FELT"
+          }
+        }
       },
       "TXN": {
         "title": "Transaction",
@@ -3104,31 +3126,7 @@
           },
           "entry_points_by_type": {
             "title": "Entry points by type",
-            "type": "object",
-            "properties": {
-              "CONSTRUCTOR": {
-                "type": "array",
-                "title": "Constructor",
-                "items": {
-                  "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
-                }
-              },
-              "EXTERNAL": {
-                "title": "External",
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
-                }
-              },
-              "L1_HANDLER": {
-                "title": "L1 handler",
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
-                }
-              }
-            },
-            "required": ["CONSTRUCTOR", "EXTERNAL", "L1_HANDLER"]
+            "$ref": "#/components/schemas/ENTRY_POINTS_BY_TYPE"
           },
           "abi": {
             "title": "ABI",
@@ -3142,6 +3140,34 @@
           "entry_points_by_type"
         ]
       },
+      "ENTRY_POINTS_BY_TYPE": {
+        "title": "Entry points by type",
+        "type": "object",
+        "properties": {
+          "CONSTRUCTOR": {
+            "type": "array",
+            "title": "Constructor",
+            "items": {
+              "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
+            }
+          },
+          "EXTERNAL": {
+            "title": "External",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
+            }
+          },
+          "L1_HANDLER": {
+            "title": "L1 handler",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
+            }
+          }
+        },
+        "required": ["CONSTRUCTOR", "EXTERNAL", "L1_HANDLER"]
+      },
       "DEPRECATED_CONTRACT_CLASS": {
         "title": "Deprecated contract class",
         "description": "The definition of a StarkNet contract class",
@@ -3154,31 +3180,8 @@
             "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$"
           },
           "entry_points_by_type": {
-            "type": "object",
             "title": "Deprecated entry points by type",
-            "properties": {
-              "CONSTRUCTOR": {
-                "type": "array",
-                "title": "Deprecated constructor",
-                "items": {
-                  "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
-                }
-              },
-              "EXTERNAL": {
-                "type": "array",
-                "title": "Deprecated external",
-                "items": {
-                  "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
-                }
-              },
-              "L1_HANDLER": {
-                "type": "array",
-                "title": "Deprecated L1 handler",
-                "items": {
-                  "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
-                }
-              }
-            }
+            "$ref": "#/components/schemas/DEPRECATED_ENTRY_POINTS_BY_TYPE"
           },
           "abi": {
             "title": "Contract ABI",
@@ -3186,6 +3189,33 @@
           }
         },
         "required": ["program", "entry_points_by_type"]
+      },
+      "DEPRECATED_ENTRY_POINTS_BY_TYPE": {
+        "type": "object",
+        "title": "Deprecated entry points by type",
+        "properties": {
+          "CONSTRUCTOR": {
+            "type": "array",
+            "title": "Deprecated constructor",
+            "items": {
+              "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+            }
+          },
+          "EXTERNAL": {
+            "type": "array",
+            "title": "Deprecated external",
+            "items": {
+              "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+            }
+          },
+          "L1_HANDLER": {
+            "type": "array",
+            "title": "Deprecated L1 handler",
+            "items": {
+              "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+            }
+          }
+        }
       },
       "DEPRECATED_CAIRO_ENTRY_POINT": {
         "title": "Deprecated Cairo entry point",
@@ -3590,6 +3620,35 @@
           }
         },
         "required": ["steps"]
+      },
+      "CONTRACT_ERROR_DATA": {
+        "type": "object",
+        "description": "More data about the execution failure",
+        "properties": {
+          "revert_error": {
+            "title": "revert error",
+            "description": "a string encoding the execution trace up to the point of failure",
+            "type": "string"
+          }
+        },
+        "required": ["revert_error"]
+      },
+      "TRANSACTION_EXECUTION_ERROR_DATA": {
+        "type": "object",
+        "description": "More data about the execution failure",
+        "properties": {
+          "transaction_index": {
+            "title": "Transaction index",
+            "description": "The index of the first transaction failing in a sequence of given transactions",
+            "type": "integer"
+          },
+          "execution_error": {
+            "title": "revert error",
+            "description": "a string encoding the execution trace up to the point of failure",
+            "type": "string"
+          }
+        },
+        "required": ["transaction_index", "execution_error"]
       }
     },
     "errors": {
@@ -3637,37 +3696,14 @@
         "code": 40,
         "message": "Contract error",
         "data": {
-          "type": "object",
-          "description": "More data about the execution failure",
-          "properties": {
-            "revert_error": {
-              "title": "revert error",
-              "description": "a string encoding the execution trace up to the point of failure",
-              "type": "string"
-            }
-          },
-          "required": ["revert_error"]
+          "$ref": "#/components/schemas/CONTRACT_ERROR_DATA"
         }
       },
       "TRANSACTION_EXECUTION_ERROR": {
         "code": 41,
         "message": "Transaction execution error",
         "data": {
-          "type": "object",
-          "description": "More data about the execution failure",
-          "properties": {
-            "transaction_index": {
-              "title": "Transaction index",
-              "description": "The index of the first transaction failing in a sequence of given transactions",
-              "type": "integer"
-            },
-            "execution_error": {
-              "title": "revert error",
-              "description": "a string encoding the execution trace up to the point of failure",
-              "type": "string"
-            }
-          },
-          "required": ["transaction_index", "execution_error"]
+          "$ref": "#/components/schemas/TRANSACTION_EXECUTION_ERROR_DATA"
         }
       }
     }
