@@ -2691,71 +2691,84 @@
       "COMMON_RECEIPT_PROPERTIES": {
         "title": "Common receipt properties",
         "description": "Common properties for a transaction receipt",
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "Transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH",
+                "description": "The hash identifying the transaction"
+              },
+              "actual_fee": {
+                "title": "Actual fee",
+                "$ref": "#/components/schemas/FEE_PAYMENT",
+                "description": "The fee that was charged by the sequencer"
+              },
+              "finality_status": {
+                "title": "Finality status",
+                "$ref": "#/components/schemas/TXN_FINALITY_STATUS"
+              },
+              "block_hash": {
+                "title": "Block hash",
+                "$ref": "#/components/schemas/BLOCK_HASH"
+              },
+              "block_number": {
+                "title": "Block number",
+                "$ref": "#/components/schemas/BLOCK_NUMBER"
+              },
+              "messages_sent": {
+                "type": "array",
+                "title": "Messages sent",
+                "items": {
+                  "$ref": "#/components/schemas/MSG_TO_L1"
+                }
+              },
+              "events": {
+                "description": "The events emitted as part of this transaction",
+                "title": "Events",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EVENT"
+                }
+              },
+              "execution_resources": {
+                "title": "Execution resources",
+                "description": "The resources consumed by the transaction",
+                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+              }
+            },
+            "required": [
+              "transaction_hash",
+              "actual_fee",
+              "finality_status",
+              "block_hash",
+              "block_number",
+              "messages_sent",
+              "events",
+              "execution_resources"
+            ]
+          },
+          {
+            "description": "Transaction execution result",
+            "$ref": "#/components/schemas/EXECUTION_RESULT"
+          }
+        ]
+      },
+      "EXECUTION_RESULT": {
         "type": "object",
         "properties": {
-          "transaction_hash": {
-            "title": "Transaction hash",
-            "$ref": "#/components/schemas/TXN_HASH",
-            "description": "The hash identifying the transaction"
-          },
-          "actual_fee": {
-            "title": "Actual fee",
-            "$ref": "#/components/schemas/FEE_PAYMENT",
-            "description": "The fee that was charged by the sequencer"
-          },
           "execution_status": {
             "title": "Execution status",
             "$ref": "#/components/schemas/TXN_EXECUTION_STATUS"
-          },
-          "finality_status": {
-            "title": "Finality status",
-            "$ref": "#/components/schemas/TXN_FINALITY_STATUS"
-          },
-          "block_hash": {
-            "title": "Block hash",
-            "$ref": "#/components/schemas/BLOCK_HASH"
-          },
-          "block_number": {
-            "title": "Block number",
-            "$ref": "#/components/schemas/BLOCK_NUMBER"
-          },
-          "messages_sent": {
-            "type": "array",
-            "title": "Messages sent",
-            "items": {
-              "$ref": "#/components/schemas/MSG_TO_L1"
-            }
           },
           "revert_reason": {
             "title": "Revert reason",
             "description": "the revert reason for the failed execution",
             "type": "string"
-          },
-          "events": {
-            "description": "The events emitted as part of this transaction",
-            "title": "Events",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EVENT"
-            }
-          },
-          "execution_resources": {
-            "title": "Execution resources",
-            "description": "The resources consumed by the transaction",
-            "$ref": "#/components/schemas/EXECUTION_RESOURCES"
           }
         },
-        "required": [
-          "transaction_hash",
-          "actual_fee",
-          "finality_status",
-          "execution_status",
-          "block_hash",
-          "block_number",
-          "messages_sent",
-          "events",
-          "execution_resources"
-        ]
+        "required": ["execution_status"]
       },
       "INVOKE_TXN_RECEIPT": {
         "title": "Invoke Transaction Receipt",
@@ -3022,63 +3035,61 @@
       "PENDING_COMMON_RECEIPT_PROPERTIES": {
         "title": "Pending common receipt properties",
         "description": "Common properties for a pending transaction receipt",
-        "type": "object",
-        "properties": {
-          "transaction_hash": {
-            "title": "Transaction hash",
-            "$ref": "#/components/schemas/TXN_HASH",
-            "description": "The hash identifying the transaction"
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "Transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH",
+                "description": "The hash identifying the transaction"
+              },
+              "actual_fee": {
+                "title": "Actual fee",
+                "$ref": "#/components/schemas/FEE_PAYMENT",
+                "description": "The fee that was charged by the sequencer"
+              },
+              "messages_sent": {
+                "type": "array",
+                "title": "Messages sent",
+                "items": {
+                  "$ref": "#/components/schemas/MSG_TO_L1"
+                }
+              },
+              "events": {
+                "description": "The events emitted as part of this transaction",
+                "title": "Events",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EVENT"
+                }
+              },
+              "finality_status": {
+                "title": "Finality status",
+                "$ref": "#/components/schemas/TXN_FINALITY_STATUS",
+                "description": "The finality status of the transaction"
+              },
+              "execution_resources": {
+                "title": "Execution resources",
+                "description": "The resources consumed by the transaction",
+                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+              }
+            },
+            "required": [
+              "transaction_hash",
+              "actual_fee",
+              "messages_sent",
+              "events",
+              "finality_status",
+              "execution_resources"
+            ],
+            "additionalProperties": false
           },
-          "actual_fee": {
-            "title": "Actual fee",
-            "$ref": "#/components/schemas/FEE_PAYMENT",
-            "description": "The fee that was charged by the sequencer"
-          },
-          "messages_sent": {
-            "type": "array",
-            "title": "Messages sent",
-            "items": {
-              "$ref": "#/components/schemas/MSG_TO_L1"
-            }
-          },
-          "events": {
-            "description": "The events emitted as part of this transaction",
-            "title": "Events",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EVENT"
-            }
-          },
-          "revert_reason": {
-            "title": "Revert reason",
-            "description": "the revert reason for the failed execution",
-            "type": "string"
-          },
-          "finality_status": {
-            "title": "Finality status",
-            "$ref": "#/components/schemas/TXN_FINALITY_STATUS",
-            "description": "The finality status of the transaction"
-          },
-          "execution_status": {
-            "title": "Execution status",
-            "$ref": "#/components/schemas/TXN_EXECUTION_STATUS"
-          },
-          "execution_resources": {
-            "title": "Execution resources",
-            "description": "The resources consumed by the transaction",
-            "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+          {
+            "description": "Transaction execution result",
+            "$ref": "#/components/schemas/EXECUTION_RESULT"
           }
-        },
-        "required": [
-          "transaction_hash",
-          "actual_fee",
-          "messages_sent",
-          "events",
-          "finality_status",
-          "execution_status",
-          "execution_resources"
-        ],
-        "additionalProperties": false
+        ]
       },
       "MSG_TO_L1": {
         "title": "Message to L1",
