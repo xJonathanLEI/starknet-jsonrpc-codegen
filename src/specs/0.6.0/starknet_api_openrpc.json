@@ -1309,7 +1309,6 @@
             "type": "array",
             "items": {
               "title": "transactions in block",
-              "type": "object",
               "allOf": [
                 {
                   "title": "transaction",
@@ -2621,7 +2620,6 @@
           },
           "revert_reason": {
             "title": "Revert reason",
-            "name": "revert reason",
             "description": "the revert reason for the failed execution",
             "type": "string"
           },
@@ -2945,7 +2943,6 @@
           },
           "revert_reason": {
             "title": "Revert reason",
-            "name": "revert reason",
             "description": "the revert reason for the failed execution",
             "type": "string"
           },
@@ -3649,7 +3646,7 @@
               "type": "string"
             }
           },
-          "required": "revert_error"
+          "required": ["revert_error"]
         }
       },
       "TRANSACTION_EXECUTION_ERROR": {
