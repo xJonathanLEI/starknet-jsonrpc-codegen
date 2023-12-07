@@ -19,6 +19,7 @@ The following versions are supported:
 - `0.3.0`
 - `0.4.0`
 - `0.5.1`
+- `0.6.0` ([rc5](https://github.com/starkware-libs/starknet-specs/releases/tag/v0.6.0-rc5))
 
 ## License
 

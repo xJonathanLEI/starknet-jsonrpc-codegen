@@ -1576,6 +1576,14 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             type_name: String::from("Hash256"),
             serializer: None,
         },
+        "u64" => RustFieldType {
+            type_name: String::from("u64"),
+            serializer: Some(SerializerOverride::SerdeAs(String::from("NumAsHex"))),
+        },
+        "u128" => RustFieldType {
+            type_name: String::from("u128"),
+            serializer: Some(SerializerOverride::SerdeAs(String::from("NumAsHex"))),
+        },
         _ => return None,
     })
 }

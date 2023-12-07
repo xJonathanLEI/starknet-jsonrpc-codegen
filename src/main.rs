@@ -45,6 +45,7 @@ enum SpecVersion {
     V0_3_0,
     V0_4_0,
     V0_5_1,
+    V0_6_0,
 }
 
 #[derive(Debug, Clone)]
@@ -123,6 +124,7 @@ impl FromStr for SpecVersion {
             "0.3.0" | "v0.3.0" => Self::V0_3_0,
             "0.4.0" | "v0.4.0" => Self::V0_4_0,
             "0.5.1" | "v0.5.1" => Self::V0_5_1,
+            "0.6.0" | "v0.6.0" => Self::V0_6_0,
             _ => anyhow::bail!("unknown spec version: {}", s),
         })
     }
@@ -136,6 +138,7 @@ impl ValueEnum for SpecVersion {
             Self::V0_3_0,
             Self::V0_4_0,
             Self::V0_5_1,
+            Self::V0_6_0,
         ]
     }
 
@@ -148,6 +151,7 @@ impl ValueEnum for SpecVersion {
             Self::V0_3_0 => Some(PossibleValue::new("0.3.0").alias("v0.3.0")),
             Self::V0_4_0 => Some(PossibleValue::new("0.4.0").alias("v0.4.0")),
             Self::V0_5_1 => Some(PossibleValue::new("0.5.1").alias("v0.5.1")),
+            Self::V0_6_0 => Some(PossibleValue::new("0.6.0").alias("v0.6.0")),
         }
     }
 }
@@ -235,7 +239,7 @@ impl AdditionalDerivesOptions {
 fn main() {
     let cli = Cli::parse();
 
-    let profiles: [GenerationProfile; 5] = [
+    let profiles: [GenerationProfile; 6] = [
         GenerationProfile {
             version: SpecVersion::V0_1_0,
             raw_specs: RawSpecs {
@@ -284,6 +288,16 @@ fn main() {
                 trace: include_str!("./specs/0.5.1/starknet_trace_api_openrpc.json"),
             },
             options: serde_json::from_str(include_str!("./profiles/0.5.1.json"))
+                .expect("Unable to parse profile options"),
+        },
+        GenerationProfile {
+            version: SpecVersion::V0_6_0,
+            raw_specs: RawSpecs {
+                main: include_str!("./specs/0.6.0/starknet_api_openrpc.json"),
+                write: include_str!("./specs/0.6.0/starknet_write_api.json"),
+                trace: include_str!("./specs/0.6.0/starknet_trace_api_openrpc.json"),
+            },
+            options: serde_json::from_str(include_str!("./profiles/0.6.0.json"))
                 .expect("Unable to parse profile options"),
         },
     ];

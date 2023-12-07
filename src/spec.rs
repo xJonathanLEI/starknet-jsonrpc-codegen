@@ -154,6 +154,9 @@ pub struct IntegerPrimitive {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimum: Option<i32>,
+    // Field not handled for now
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub not: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -170,6 +173,9 @@ pub struct ObjectPrimitive {
     pub required: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_properties: Option<bool>,
+    // Field not handled for now
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub not: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
