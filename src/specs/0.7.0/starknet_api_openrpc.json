@@ -1340,7 +1340,6 @@
             "type": "array",
             "items": {
               "title": "transactions in block",
-              "type": "object",
               "allOf": [
                 {
                   "title": "transaction",
@@ -3875,7 +3874,6 @@
         "required": ["steps"]
       },
       "EXECUTION_RESOURCES": {
-        "type": "object",
         "title": "Execution resources",
         "description": "the resources consumed by the transaction, includes both computation and data",
         "allOf": [
