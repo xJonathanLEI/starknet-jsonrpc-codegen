@@ -2791,8 +2791,7 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "type": "string",
-                "enum": ["0x0"]
+                "$ref": "#/components/schemas/FELT"
               },
               "type": {
                 "title": "type",
