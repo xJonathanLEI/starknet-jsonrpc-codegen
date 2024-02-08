@@ -96,6 +96,43 @@
       ]
     },
     {
+      "name": "starknet_getBlockWithReceipts",
+      "summary": "Get block information with full transactions and receipts given the block id",
+      "params": [
+        {
+          "name": "block_id",
+          "description": "The hash of the requested block, or number (height) of the requested block, or a block tag",
+          "required": true,
+          "schema": {
+            "title": "Block id",
+            "$ref": "#/components/schemas/BLOCK_ID"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The resulting block information with full transactions",
+        "schema": {
+          "title": "Starknet get block with txs and receipts result",
+          "oneOf": [
+            {
+              "title": "Block with transactions",
+              "$ref": "#/components/schemas/BLOCK_WITH_RECEIPTS"
+            },
+            {
+              "title": "Pending block with transactions",
+              "$ref": "#/components/schemas/PENDING_BLOCK_WITH_RECEIPTS"
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+        }
+      ]
+    },
+    {
       "name": "starknet_getStateUpdate",
       "summary": "Get the information about the result of executing the requested block",
       "params": [
@@ -1290,6 +1327,38 @@
         },
         "required": ["transactions"]
       },
+      "BLOCK_BODY_WITH_RECEIPTS": {
+        "title": "Block body with transactions and receipts",
+        "type": "object",
+        "properties": {
+          "transactions": {
+            "title": "Transactions",
+            "description": "The transactions in this block",
+            "type": "array",
+            "items": {
+              "title": "transactions in block",
+              "type": "object",
+              "allOf": [
+                {
+                  "title": "transaction",
+                  "$ref": "#/components/schemas/TXN"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "receipt": {
+                      "title": "receipt",
+                      "$ref": "#/components/schemas/TXN_RECEIPT"
+                    }
+                  },
+                  "required": ["receipt"]
+                }
+              ]
+            }
+          }
+        },
+        "required": ["transactions"]
+      },
       "BLOCK_HEADER": {
         "title": "Block header",
         "type": "object",
@@ -1328,6 +1397,17 @@
             "title": "L1 gas price",
             "description": "The price of l1 gas in the block",
             "$ref": "#/components/schemas/RESOURCE_PRICE"
+          },
+          "l1_data_gas_price": {
+            "title": "L1 data gas price",
+            "description": "The price of l1 data gas in the block",
+            "$ref": "#/components/schemas/RESOURCE_PRICE"
+          },
+          "l1_da_mode": {
+            "title": "L1 da mode",
+            "type": "string",
+            "description": "specifies whether the data of this block is published via blob data or calldata",
+            "enum": ["BLOB", "CALLDATA"]
           },
           "starknet_version": {
             "title": "Starknet version",
@@ -1438,6 +1518,31 @@
           }
         ]
       },
+      "BLOCK_WITH_RECEIPTS": {
+        "title": "Block with transactions and receipts",
+        "description": "The block object",
+        "allOf": [
+          {
+            "title": "block with txs",
+            "type": "object",
+            "properties": {
+              "status": {
+                "title": "Status",
+                "$ref": "#/components/schemas/BLOCK_STATUS"
+              }
+            },
+            "required": ["status"]
+          },
+          {
+            "title": "Block header",
+            "$ref": "#/components/schemas/BLOCK_HEADER"
+          },
+          {
+            "title": "Block body with transactions and receipts",
+            "$ref": "#/components/schemas/BLOCK_BODY_WITH_RECEIPTS"
+          }
+        ]
+      },
       "PENDING_BLOCK_WITH_TX_HASHES": {
         "title": "Pending block with transaction hashes",
         "description": "The dynamic block being constructed by the sequencer. Note that this object will be deprecated upon decentralization.",
@@ -1459,6 +1564,20 @@
           {
             "title": "Block body with transactions",
             "$ref": "#/components/schemas/BLOCK_BODY_WITH_TXS"
+          },
+          {
+            "title": "Pending block header",
+            "$ref": "#/components/schemas/PENDING_BLOCK_HEADER"
+          }
+        ]
+      },
+      "PENDING_BLOCK_WITH_RECEIPTS": {
+        "title": "Pending block with transactions and receipts",
+        "description": "The dynamic block being constructed by the sequencer. Note that this object will be deprecated upon decentralization.",
+        "allOf": [
+          {
+            "title": "Block body with transactions and receipts",
+            "$ref": "#/components/schemas/BLOCK_BODY_WITH_RECEIPTS"
           },
           {
             "title": "Pending block header",
@@ -2670,7 +2789,8 @@
               "version": {
                 "title": "Version",
                 "description": "Version of the transaction scheme",
-                "$ref": "#/components/schemas/FELT"
+                "type": "string",
+                "enum": ["0x0"]
               },
               "type": {
                 "title": "type",
@@ -3550,17 +3670,27 @@
         "properties": {
           "gas_consumed": {
             "title": "Gas consumed",
-            "description": "The Ethereum gas cost of the transaction (see https://docs.starknet.io/docs/Fees/fee-mechanism for more info)",
+            "description": "The Ethereum gas consumption of the transaction",
             "$ref": "#/components/schemas/FELT"
           },
           "gas_price": {
             "title": "Gas price",
-            "description": "The gas price (in gwei or fri, depending on the tx version) that was used in the cost estimation",
+            "description": "The gas price (in wei or fri, depending on the tx version) that was used in the cost estimation",
+            "$ref": "#/components/schemas/FELT"
+          },
+          "data_gas_consumed": {
+            "title": "Data gas consumed",
+            "description": "The Ethereum data gas consumption of the transaction",
+            "$ref": "#/components/schemas/FELT"
+          },
+          "data_gas_price": {
+            "title": "Data gas price",
+            "description": "The data gas price (in wei or fri, depending on the tx version) that was used in the cost estimation",
             "$ref": "#/components/schemas/FELT"
           },
           "overall_fee": {
             "title": "Overall fee",
-            "description": "The estimated fee for the transaction (in gwei or fri, depending on the tx version), product of gas_consumed and gas_price",
+            "description": "The estimated fee for the transaction (in wei or fri, depending on the tx version), equals to gas_consumed*gas_price + data_gas_consumed*data_gas_price",
             "$ref": "#/components/schemas/FELT"
           },
           "unit": {
@@ -3569,7 +3699,14 @@
             "$ref": "#/components/schemas/PRICE_UNIT"
           }
         },
-        "required": ["gas_consumed", "gas_price", "overall_fee", "unit"]
+        "required": [
+          "gas_consumed",
+          "gas_price",
+          "data_gas_consumed",
+          "data_gas_price",
+          "overall_fee",
+          "unit"
+        ]
       },
       "FEE_PAYMENT": {
         "title": "Fee Payment",
@@ -3643,8 +3780,8 @@
         },
         "required": ["price_in_wei", "price_in_fri"]
       },
-      "EXECUTION_RESOURCES": {
-        "title": "Execution resources",
+      "COMPUTATION_RESOURCES": {
+        "title": "Computation resources",
         "description": "The resources consumed by the VM",
         "type": "object",
         "properties": {
@@ -3730,6 +3867,41 @@
           }
         },
         "required": ["steps"]
+      },
+      "EXECUTION_RESOURCES": {
+        "type": "object",
+        "title": "Execution resources",
+        "description": "the resources consumed by the transaction, includes both computation and data",
+        "allOf": [
+          {
+            "title": "ComputationResources",
+            "$ref": "#/components/schemas/COMPUTATION_RESOURCES"
+          },
+          {
+            "type": "object",
+            "title": "DataResources",
+            "description": "the data-availability resources of this transaction",
+            "properties": {
+              "data_availability": {
+                "type": "object",
+                "properties": {
+                  "l1_gas": {
+                    "title": "L1Gas",
+                    "description": "the gas consumed by this transaction's data, 0 if it uses data gas for DA",
+                    "type": "integer"
+                  },
+                  "l1_data_gas": {
+                    "title": "L1DataGas",
+                    "description": "the data gas consumed by this transaction's data, 0 if it uses gas for DA",
+                    "type": "integer"
+                  }
+                },
+                "required": ["l1_gas", "l1_data_gas"]
+              }
+            },
+            "required": ["data_availability"]
+          }
+        ]
       },
       "CONTRACT_ERROR_DATA": {
         "type": "object",
