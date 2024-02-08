@@ -147,13 +147,18 @@
             "description": "the state diffs induced by the transaction",
             "$ref": "#/components/schemas/STATE_DIFF"
           },
+          "execution_resources": {
+            "title": "Execution resources",
+            "description": "the resources consumed by the transaction, includes both computation and data",
+            "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+          },
           "type": {
             "title": "Type",
             "type": "string",
             "enum": ["INVOKE"]
           }
         },
-        "required": ["type", "execute_invocation"]
+        "required": ["type", "execute_invocation", "execution_resources"]
       },
       "DECLARE_TXN_TRACE": {
         "type": "object",
@@ -170,13 +175,18 @@
             "description": "the state diffs induced by the transaction",
             "$ref": "#/components/schemas/STATE_DIFF"
           },
+          "execution_resources": {
+            "title": "Execution resources",
+            "description": "the resources consumed by the transaction, includes both computation and data",
+            "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+          },
           "type": {
             "title": "Type",
             "type": "string",
             "enum": ["DECLARE"]
           }
         },
-        "required": ["type"]
+        "required": ["type", "execution_resources"]
       },
       "DEPLOY_ACCOUNT_TXN_TRACE": {
         "type": "object",
@@ -197,13 +207,18 @@
             "description": "the state diffs induced by the transaction",
             "$ref": "#/components/schemas/STATE_DIFF"
           },
+          "execution_resources": {
+            "title": "Execution resources",
+            "description": "the resources consumed by the transaction, includes both computation and data",
+            "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+          },
           "type": {
             "title": "Type",
             "type": "string",
             "enum": ["DEPLOY_ACCOUNT"]
           }
         },
-        "required": ["type", "constructor_invocation"]
+        "required": ["type", "execution_resources", "constructor_invocation"]
       },
       "L1_HANDLER_TXN_TRACE": {
         "type": "object",
@@ -340,9 +355,9 @@
                 }
               },
               "execution_resources": {
-                "title": "Execution resources",
+                "title": "Computation resources",
                 "description": "Resources consumed by the internal call",
-                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+                "$ref": "#/components/schemas/COMPUTATION_RESOURCES"
               }
             },
             "required": [
@@ -430,6 +445,9 @@
       },
       "STATE_DIFF": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/STATE_DIFF"
+      },
+      "COMPUTATION_RESOURCES": {
+        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/COMPUTATION_RESOURCES"
       },
       "EXECUTION_RESOURCES": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EXECUTION_RESOURCES"
