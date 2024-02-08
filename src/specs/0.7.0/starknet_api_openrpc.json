@@ -1337,26 +1337,29 @@
             "type": "array",
             "items": {
               "title": "transactions in block",
-              "allOf": [
-                {
-                  "title": "transaction",
-                  "$ref": "#/components/schemas/TXN"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "receipt": {
-                      "title": "receipt",
-                      "$ref": "#/components/schemas/TXN_RECEIPT"
-                    }
-                  },
-                  "required": ["receipt"]
-                }
-              ]
+              "$ref": "#/components/schemas/TXN_WITH_RECEIPT"
             }
           }
         },
         "required": ["transactions"]
+      },
+      "TXN_WITH_RECEIPT": {
+        "allOf": [
+          {
+            "title": "transaction",
+            "$ref": "#/components/schemas/TXN"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "receipt": {
+                "title": "receipt",
+                "$ref": "#/components/schemas/TXN_RECEIPT"
+              }
+            },
+            "required": ["receipt"]
+          }
+        ]
       },
       "BLOCK_HEADER": {
         "title": "Block header",
@@ -3876,30 +3879,36 @@
             "$ref": "#/components/schemas/COMPUTATION_RESOURCES"
           },
           {
-            "type": "object",
-            "title": "DataResources",
-            "description": "the data-availability resources of this transaction",
-            "properties": {
-              "data_availability": {
-                "type": "object",
-                "properties": {
-                  "l1_gas": {
-                    "title": "L1Gas",
-                    "description": "the gas consumed by this transaction's data, 0 if it uses data gas for DA",
-                    "type": "integer"
-                  },
-                  "l1_data_gas": {
-                    "title": "L1DataGas",
-                    "description": "the data gas consumed by this transaction's data, 0 if it uses gas for DA",
-                    "type": "integer"
-                  }
-                },
-                "required": ["l1_gas", "l1_data_gas"]
-              }
-            },
-            "required": ["data_availability"]
+            "$ref": "#/components/schemas/DATA_RESOURCES"
           }
         ]
+      },
+      "DATA_RESOURCES": {
+        "type": "object",
+        "title": "DataResources",
+        "description": "the data-availability resources of this transaction",
+        "properties": {
+          "data_availability": {
+            "$ref": "#/components/schemas/DATA_AVAILABILITY_RESOURCES"
+          }
+        },
+        "required": ["data_availability"]
+      },
+      "DATA_AVAILABILITY_RESOURCES": {
+        "type": "object",
+        "properties": {
+          "l1_gas": {
+            "title": "L1Gas",
+            "description": "the gas consumed by this transaction's data, 0 if it uses data gas for DA",
+            "type": "integer"
+          },
+          "l1_data_gas": {
+            "title": "L1DataGas",
+            "description": "the data gas consumed by this transaction's data, 0 if it uses gas for DA",
+            "type": "integer"
+          }
+        },
+        "required": ["l1_gas", "l1_data_gas"]
       },
       "CONTRACT_ERROR_DATA": {
         "type": "object",
