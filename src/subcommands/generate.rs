@@ -152,7 +152,7 @@ impl Generate {
             println!();
         }
 
-        println!("use alloc::{{format, string::String, vec::Vec}};");
+        println!("use alloc::{{format, string::*, vec::*}};");
         println!();
 
         println!("use serde::{{Deserialize, Deserializer, Serialize, Serializer}};");
@@ -165,10 +165,7 @@ impl Generate {
             println!("}};");
         } else {
             println!();
-            println!("use crate::{{");
-            println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
-            println!("    types::FieldElement,");
-            println!("}};");
+            println!("use crate::serde::byte_array::base64;");
         }
 
         println!();
