@@ -1374,9 +1374,12 @@ fn get_schema_fields(
                         if should_flatten {
                             get_schema_fields(item, specs, fields, flatten_option)?;
                         } else {
+                            let field_name = get_all_of_ref_name_override(reference.name())
+                                .unwrap_or_else(|| reference.name().to_lowercase());
+
                             fields.push(RustField {
                                 description: reference.description.to_owned(),
-                                name: reference.name().to_lowercase(),
+                                name: field_name,
                                 optional: false,
                                 fixed: None,
                                 arc_wrap: false,
@@ -1589,6 +1592,13 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
         },
         _ => return None,
     })
+}
+
+fn get_all_of_ref_name_override(type_name: &str) -> Option<String> {
+    match type_name {
+        "TXN_RECEIPT" => Some("receipt".into()),
+        _ => None,
+    }
 }
 
 fn print_doc(doc: &str, indent_spaces: usize) {
