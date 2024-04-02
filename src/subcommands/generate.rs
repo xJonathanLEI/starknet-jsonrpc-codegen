@@ -1646,6 +1646,7 @@ fn to_starknet_rs_name(name: &str) -> String {
         "DeprecatedEntryPointsByType" => String::from("LegacyEntryPointsByType"),
         "DeprecatedCairoEntryPoint" => String::from("LegacyContractEntryPoint"),
         "DaMode" => String::from("DataAvailabilityMode"),
+        "L1DaMode" => String::from("L1DataAvailabilityMode"),
         "TransactionStatus" => String::from("SequencerTransactionStatus"),
         _ => name,
     }

@@ -1399,9 +1399,8 @@
           },
           "l1_da_mode": {
             "title": "L1 da mode",
-            "type": "string",
             "description": "specifies whether the data of this block is published via blob data or calldata",
-            "enum": ["BLOB", "CALLDATA"]
+            "$ref": "#/components/schemas/L1_DA_MODE"
           },
           "starknet_version": {
             "title": "Starknet version",
@@ -1454,9 +1453,8 @@
           },
           "l1_da_mode": {
             "title": "L1 da mode",
-            "type": "string",
             "description": "specifies whether the data of this block is published via blob data or calldata",
-            "enum": ["BLOB", "CALLDATA"]
+            "$ref": "#/components/schemas/L1_DA_MODE"
           },
           "starknet_version": {
             "title": "Starknet version",
@@ -3604,6 +3602,11 @@
         "type": "string",
         "description": "Specifies a storage domain in Starknet. Each domain has different gurantess regarding availability",
         "enum": ["L1", "L2"]
+      },
+      "L1_DA_MODE": {
+        "title": "L1 DA mode",
+        "type": "string",
+        "enum": ["BLOB", "CALLDATA"]
       },
       "RESOURCE_BOUNDS_MAPPING": {
         "type": "object",
