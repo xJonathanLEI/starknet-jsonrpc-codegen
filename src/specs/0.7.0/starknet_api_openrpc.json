@@ -2906,7 +2906,6 @@
               },
               "revert_reason": {
                 "title": "Revert reason",
-                "name": "revert reason",
                 "description": "the revert reason for the failed execution",
                 "type": "string"
               }
