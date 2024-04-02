@@ -1260,7 +1260,7 @@
         "title": "Storage key",
         "$comment": "A storage key, represented as a string of hex digits",
         "description": "A storage key. Represented as up to 62 hex digits, 3 bits, and 5 leading zeroes.",
-        "pattern": "^0x0[0-7]{1}[a-fA-F0-9]{0,62}$"
+        "pattern": "^0x(0|[0-7]{1}[a-fA-F0-9]{0,62}$)"
       },
       "ETH_ADDRESS": {
         "title": "Ethereum address",
@@ -2821,10 +2821,10 @@
         ]
       },
       "COMMON_RECEIPT_PROPERTIES": {
-        "title": "Common receipt properties",
-        "description": "Common properties for a transaction receipt",
         "allOf": [
           {
+            "title": "Common receipt properties",
+            "description": "Common properties for a transaction receipt",
             "type": "object",
             "properties": {
               "transaction_hash": {
@@ -2873,25 +2873,47 @@
             ]
           },
           {
-            "description": "Transaction execution result",
             "$ref": "#/components/schemas/EXECUTION_RESULT"
           }
         ]
       },
       "EXECUTION_RESULT": {
-        "type": "object",
-        "properties": {
-          "execution_status": {
-            "title": "Execution status",
-            "$ref": "#/components/schemas/TXN_EXECUTION_STATUS"
+        "oneOf": [
+          {
+            "title": "Successful Common receipt properties",
+            "description": "Common properties for a transaction receipt that was executed successfully",
+            "type": "object",
+            "properties": {
+              "execution_status": {
+                "title": "Execution status",
+                "type": "string",
+                "enum": ["SUCCEEDED"],
+                "description": "The execution status of the transaction"
+              }
+            },
+            "required": ["execution_status"]
           },
-          "revert_reason": {
-            "title": "Revert reason",
-            "description": "the revert reason for the failed execution",
-            "type": "string"
+          {
+            "title": "Reverted Common receipt properties",
+            "description": "Common properties for a transaction receipt that was reverted",
+            "type": "object",
+            "properties": {
+              "execution_status": {
+                "title": "Execution status",
+                "type": "string",
+                "enum": ["REVERTED"],
+                "description": "The execution status of the transaction"
+              },
+              "revert_reason": {
+                "title": "Revert reason",
+                "name": "revert reason",
+                "description": "the revert reason for the failed execution",
+                "type": "string"
+              }
+            },
+            "required": ["execution_status", "revert_reason"]
           }
-        },
-        "required": ["execution_status"]
+        ]
       },
       "INVOKE_TXN_RECEIPT": {
         "title": "Invoke Transaction Receipt",
