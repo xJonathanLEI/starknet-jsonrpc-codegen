@@ -23,6 +23,7 @@
     ]
   },
   "ignore_types": [],
+  "allow_unknown_field_types": [],
   "fixed_field_types": {
     "fixed_field_types": [
       {

@@ -3,6 +3,7 @@
     "Selected": ["BLOCK_BODY_WITH_TXS", "BLOCK_BODY_WITH_TX_HASHES"]
   },
   "ignore_types": [],
+  "allow_unknown_field_types": [],
   "fixed_field_types": {
     "fixed_field_types": []
   },

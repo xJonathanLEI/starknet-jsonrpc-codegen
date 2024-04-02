@@ -61,6 +61,7 @@ struct RawSpecs {
 struct ProfileOptions {
     flatten_options: FlattenOption,
     ignore_types: Vec<String>,
+    allow_unknown_field_types: Vec<String>,
     fixed_field_types: FixedFieldsOptions,
     arc_wrapped_types: ArcWrappingOptions,
     additional_derives_types: AdditionalDerivesOptions,

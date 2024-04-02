@@ -44,6 +44,7 @@ enum RustTypeKind {
 
 #[derive(Debug, Clone)]
 struct RustStruct {
+    allow_unknown_fields: bool,
     serde_as_array: bool,
     extra_ref_type: bool,
     fields: Vec<RustField>,
@@ -138,6 +139,7 @@ impl Generate {
             &specs,
             &profile.options.flatten_options,
             &profile.options.ignore_types,
+            &profile.options.allow_unknown_field_types,
             &profile.options.fixed_field_types,
             &profile.options.arc_wrapped_types,
             &profile.options.additional_derives_types,
@@ -308,7 +310,12 @@ impl RustStruct {
         }
         if derive_serde {
             print_rust_derives(&self.with_serde_derives());
-            println!("#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]");
+
+            if !self.allow_unknown_fields {
+                println!(
+                    "#[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
+                );
+            }
         } else {
             print_rust_derives(&self.with_default_derives());
         }
@@ -1001,6 +1008,7 @@ fn resolve_types(
     specs: &Specification,
     flatten_option: &FlattenOption,
     ignore_types: &[String],
+    allow_unknown_field_types: &[String],
     fixed_fields: &FixedFieldsOptions,
     arc_wrapping: &ArcWrappingOptions,
     additional_derives_types: &AdditionalDerivesOptions,
@@ -1038,7 +1046,13 @@ fn resolve_types(
             .find_additional_derives(&rusty_name)
             .unwrap_or_default();
 
-        let mut content = match schema_to_rust_type_kind(specs, entity, flatten_option, derives)? {
+        let mut content = match schema_to_rust_type_kind(
+            specs,
+            entity,
+            allow_unknown_field_types.contains(name),
+            flatten_option,
+            derives,
+        )? {
             Some(content) => content,
             None => {
                 not_implemented_types.push(name.to_owned());
@@ -1144,6 +1158,7 @@ fn resolve_types(
                 })
             } else {
                 RustTypeKind::Struct(RustStruct {
+                    allow_unknown_fields: false,
                     serde_as_array: true,
                     extra_ref_type: true,
                     fields: request_fields,
@@ -1172,6 +1187,7 @@ fn resolve_types(
 fn schema_to_rust_type_kind(
     specs: &Specification,
     entity: &Schema,
+    allow_unknown_fields: bool,
     flatten_option: &FlattenOption,
     derives: Vec<String>,
 ) -> Result<Option<RustTypeKind>> {
@@ -1185,6 +1201,7 @@ fn schema_to_rust_type_kind(
                 .ok_or_else(|| anyhow::anyhow!(""))?;
             get_schema_fields(redirected_schema, specs, &mut fields, flatten_option)?;
             Some(RustTypeKind::Struct(RustStruct {
+                allow_unknown_fields,
                 serde_as_array: false,
                 extra_ref_type: false,
                 fields,
@@ -1196,6 +1213,7 @@ fn schema_to_rust_type_kind(
             let mut fields = vec![];
             get_schema_fields(entity, specs, &mut fields, flatten_option)?;
             Some(RustTypeKind::Struct(RustStruct {
+                allow_unknown_fields,
                 serde_as_array: false,
                 extra_ref_type: false,
                 fields,
