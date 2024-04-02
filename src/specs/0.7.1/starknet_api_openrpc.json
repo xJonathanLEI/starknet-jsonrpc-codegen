@@ -3066,22 +3066,25 @@
             "$ref": "#/components/schemas/TXN_RECEIPT"
           },
           {
-            "type": "object",
-            "properties": {
-              "block_hash": {
-                "title": "Block hash",
-                "$ref": "#/components/schemas/BLOCK_HASH",
-                "description": "If this field is missing, it means the receipt belongs to the pending block"
-              },
-              "block_number": {
-                "title": "Block number",
-                "$ref": "#/components/schemas/BLOCK_NUMBER",
-                "description": "If this field is missing, it means the receipt belongs to the pending block"
-              }
-            },
-            "required": []
+            "$ref": "#/components/schemas/RECEIPT_BLOCK"
           }
         ]
+      },
+      "RECEIPT_BLOCK": {
+        "type": "object",
+        "properties": {
+          "block_hash": {
+            "title": "Block hash",
+            "$ref": "#/components/schemas/BLOCK_HASH",
+            "description": "If this field is missing, it means the receipt belongs to the pending block"
+          },
+          "block_number": {
+            "title": "Block number",
+            "$ref": "#/components/schemas/BLOCK_NUMBER",
+            "description": "If this field is missing, it means the receipt belongs to the pending block"
+          }
+        },
+        "required": []
       },
       "MSG_TO_L1": {
         "title": "Message to L1",

@@ -1615,6 +1615,7 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
 fn get_all_of_ref_name_override(type_name: &str) -> Option<String> {
     match type_name {
         "TXN_RECEIPT" => Some("receipt".into()),
+        "RECEIPT_BLOCK" => Some("block".into()),
         _ => None,
     }
 }

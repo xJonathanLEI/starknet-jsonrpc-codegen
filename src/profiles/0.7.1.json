@@ -19,7 +19,7 @@
       "BLOCK_BODY_WITH_RECEIPTS"
     ]
   },
-  "ignore_types": [],
+  "ignore_types": ["RECEIPT_BLOCK"],
   "allow_unknown_field_types": ["TXN_RECEIPT_WITH_BLOCK_INFO"],
   "fixed_field_types": {
     "fixed_field_types": [
