@@ -261,7 +261,8 @@
             "description": "the revert reason for the failed execution",
             "type": "string"
           }
-        }
+        },
+        "required": ["revert_reason"]
       },
       "SIMULATION_FLAG": {
         "type": "string",
@@ -386,7 +387,8 @@
                 "description": "the order of the event within the transaction",
                 "type": "integer"
               }
-            }
+            },
+            "required": ["order"]
           },
           {
             "$ref": "#/components/schemas/EVENT_CONTENT"
@@ -405,7 +407,8 @@
                 "description": "the order of the message within the transaction",
                 "type": "integer"
               }
-            }
+            },
+            "required": ["order"]
           },
           {
             "$ref": "#/components/schemas/MSG_TO_L1"
@@ -443,7 +446,8 @@
           "status": {
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_STATUS"
           }
-        }
+        },
+        "required": ["status"]
       }
     },
     "errors": {

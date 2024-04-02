@@ -902,7 +902,8 @@
             "description": "The nonce for the given address at the end of the block",
             "$ref": "#/components/schemas/FELT"
           }
-        }
+        },
+        "required": ["contract_address", "nonce"]
       },
       "ADDRESS": {
         "$ref": "#/components/schemas/FELT"

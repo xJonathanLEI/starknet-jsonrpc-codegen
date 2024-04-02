@@ -169,8 +169,7 @@ pub struct ObjectPrimitive {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
     pub properties: IndexMap<String, Schema>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub required: Option<Vec<String>>,
+    pub required: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_properties: Option<bool>,
     // Field not handled for now

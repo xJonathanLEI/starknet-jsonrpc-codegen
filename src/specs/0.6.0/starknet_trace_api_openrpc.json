@@ -245,7 +245,8 @@
             "description": "the revert reason for the failed execution",
             "type": "string"
           }
-        }
+        },
+        "required": ["revert_reason"]
       },
       "SIMULATION_FLAG": {
         "type": "string",
@@ -263,7 +264,8 @@
             "title": "the transaction's resources and fee",
             "$ref": "#/components/schemas/FEE_ESTIMATE"
           }
-        }
+        },
+        "required": ["transaction_trace", "fee_estimation"]
       },
       "TRANSACTION_TRACE_WITH_HASH": {
         "type": "object",
@@ -275,7 +277,8 @@
           "trace_root": {
             "$ref": "#/components/schemas/TRANSACTION_TRACE"
           }
-        }
+        },
+        "required": ["transaction_hash", "trace_root"]
       },
       "NESTED_CALL": {
         "$ref": "#/components/schemas/FUNCTION_INVOCATION"
@@ -376,7 +379,8 @@
                 "description": "the order of the event within the transaction",
                 "type": "integer"
               }
-            }
+            },
+            "required": ["order"]
           },
           {
             "$ref": "#/components/schemas/EVENT_CONTENT"
@@ -395,7 +399,8 @@
                 "description": "the order of the message within the transaction",
                 "type": "integer"
               }
-            }
+            },
+            "required": ["order"]
           },
           {
             "$ref": "#/components/schemas/MSG_TO_L1"
@@ -436,7 +441,8 @@
           "status": {
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_STATUS"
           }
-        }
+        },
+        "required": ["status"]
       }
     },
     "errors": {

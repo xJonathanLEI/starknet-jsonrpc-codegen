@@ -903,7 +903,8 @@
             "description": "The nonce for the given address at the end of the block",
             "$ref": "#/components/schemas/FELT"
           }
-        }
+        },
+        "required": ["contract_address", "nonce"]
       },
       "ADDRESS": {
         "$ref": "#/components/schemas/FELT"
@@ -1125,7 +1126,8 @@
             "description": "The new value applied to the given address",
             "$ref": "#/components/schemas/FELT"
           }
-        }
+        },
+        "required": ["key", "value"]
       },
       "TXN": {
         "title": "Transaction",
@@ -1986,7 +1988,8 @@
                 "description": "offset of this property within the struct",
                 "type": "integer"
               }
-            }
+            },
+            "required": ["offset"]
           }
         ]
       },

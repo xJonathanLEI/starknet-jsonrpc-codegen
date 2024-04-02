@@ -1123,7 +1123,8 @@
             "description": "The Cairo assembly hash corresponding to the declared class",
             "$ref": "#/components/schemas/FELT"
           }
-        }
+        },
+        "required": ["class_hash", "compiled_class_hash"]
       },
       "REPLACED_CLASS_ITEM": {
         "description": "The list of contracts whose class was replaced",
@@ -1140,7 +1141,8 @@
             "description": "The new class hash",
             "$ref": "#/components/schemas/FELT"
           }
-        }
+        },
+        "required": ["contract_address", "class_hash"]
       },
       "NONCE_UPDATE": {
         "title": "Nonce update",
@@ -1157,7 +1159,8 @@
             "description": "The nonce for the given address at the end of the block",
             "$ref": "#/components/schemas/FELT"
           }
-        }
+        },
+        "required": ["contract_address", "nonce"]
       },
       "PENDING_STATE_UPDATE": {
         "title": "Pending state update",
@@ -1501,7 +1504,8 @@
             "description": "The new value applied to the given address",
             "$ref": "#/components/schemas/FELT"
           }
-        }
+        },
+        "required": ["key", "value"]
       },
       "TXN": {
         "title": "Transaction",
@@ -2841,7 +2845,8 @@
               "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
             }
           }
-        }
+        },
+        "required": ["CONSTRUCTOR", "EXTERNAL", "L1_HANDLER"]
       },
       "DEPRECATED_CAIRO_ENTRY_POINT": {
         "title": "Deprecated Cairo entry point",
@@ -2960,7 +2965,8 @@
                 "description": "offset of this property within the struct",
                 "type": "integer"
               }
-            }
+            },
+            "required": ["offset"]
           }
         ]
       },

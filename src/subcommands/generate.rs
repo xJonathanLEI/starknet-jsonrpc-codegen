@@ -1415,10 +1415,7 @@ fn get_schema_fields(
                 };
 
                 // Optional field transformation
-                let field_optional = match &value.required {
-                    Some(required) => !required.contains(name),
-                    None => false,
-                };
+                let field_optional = !value.required.contains(name);
                 let type_name = if field_optional {
                     format!("Option<{}>", field_type.type_name)
                 } else {
