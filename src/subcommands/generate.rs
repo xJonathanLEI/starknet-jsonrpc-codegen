@@ -1456,17 +1456,26 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
     match schema {
         Schema::Ref(value) => {
             let ref_type_name = value.name();
-            if !specs.components.schemas.contains_key(ref_type_name) {
-                anyhow::bail!("Ref target type not found: {}", ref_type_name);
-            }
+            let ref_type =
+                specs.components.schemas.get(ref_type_name).ok_or_else(|| {
+                    anyhow::anyhow!("Ref target type not found: {}", ref_type_name)
+                })?;
 
-            // Hard-coded special rules
-            Ok(
-                get_field_type_override(ref_type_name).unwrap_or_else(|| RustFieldType {
-                    type_name: to_starknet_rs_name(ref_type_name),
-                    serializer: None,
-                }),
-            )
+            if let Some(type_override) = get_field_type_override(ref_type_name) {
+                // Hard-coded special rules
+                Ok(type_override)
+            } else {
+                match ref_type {
+                    Schema::Ref(inner_ref) => {
+                        // Recursively find the real type
+                        get_rust_type_for_field(&Schema::Ref(inner_ref.to_owned()), specs)
+                    }
+                    _ => Ok(RustFieldType {
+                        type_name: to_starknet_rs_name(ref_type_name),
+                        serializer: None,
+                    }),
+                }
+            }
         }
         Schema::OneOf(_) => {
             anyhow::bail!("Anonymous oneOf types should not be used for properties");
