@@ -20,7 +20,14 @@
     ]
   },
   "ignore_types": ["RECEIPT_BLOCK"],
-  "allow_unknown_field_types": ["TXN_RECEIPT_WITH_BLOCK_INFO"],
+  "allow_unknown_field_types": [
+    "TXN_RECEIPT_WITH_BLOCK_INFO",
+    "INVOKE_TXN_RECEIPT",
+    "L1_HANDLER_TXN_RECEIPT",
+    "DECLARE_TXN_RECEIPT",
+    "DEPLOY_TXN_RECEIPT",
+    "DEPLOY_ACCOUNT_TXN_RECEIPT"
+  ],
   "fixed_field_types": {
     "fixed_field_types": [
       {

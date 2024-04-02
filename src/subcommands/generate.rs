@@ -611,9 +611,12 @@ impl RustStruct {
         }
 
         println!("        #[derive(Deserialize)]");
-        println!(
-            "        #[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
-        );
+        if !self.allow_unknown_fields {
+            println!(
+                "        #[cfg_attr(feature = \"no_unknown_fields\", serde(deny_unknown_fields))]"
+            );
+        }
+
         println!("        struct Tagged {{");
 
         for field in self.fields.iter() {
