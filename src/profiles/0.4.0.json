@@ -77,7 +77,7 @@
           },
           {
             "name": "version",
-            "value": "&FieldElement::ONE",
+            "value": "&Felt::ONE",
             "is_query_version": true
           }
         ]
@@ -92,7 +92,7 @@
           },
           {
             "name": "version",
-            "value": "&FieldElement::TWO",
+            "value": "&Felt::TWO",
             "is_query_version": true
           }
         ]
@@ -122,7 +122,7 @@
           },
           {
             "name": "version",
-            "value": "&FieldElement::ONE",
+            "value": "&Felt::ONE",
             "is_query_version": true
           }
         ]
@@ -177,7 +177,7 @@
           },
           {
             "name": "version",
-            "value": "&FieldElement::ONE",
+            "value": "&Felt::ONE",
             "is_query_version": true
           }
         ]

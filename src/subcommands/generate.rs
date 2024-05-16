@@ -163,7 +163,7 @@ impl Generate {
         if profile.version == SpecVersion::V0_1_0 {
             println!("use starknet_core::{{");
             println!("    serde::{{byte_array::base64, unsigned_field_element::UfeHex}},");
-            println!("    types::FieldElement,");
+            println!("    types::Felt,");
             println!("}};");
         } else {
             println!();
@@ -187,11 +187,11 @@ impl Generate {
         println!("pub type OwnedPtr<T> = alloc::boxed::Box<T>;");
         println!();
 
-        println!("const QUERY_VERSION_OFFSET: FieldElement = FieldElement::from_mont([");
-        println!("    18446744073700081665,");
-        println!("    17407,");
-        println!("    18446744073709551584,");
+        println!("const QUERY_VERSION_OFFSET: Felt = Felt::from_raw([");
         println!("    576460752142434320,");
+        println!("    18446744073709551584,");
+        println!("    17407,");
+        println!("    18446744073700081665,");
         println!("]);");
         println!();
 
@@ -965,9 +965,9 @@ impl RustField {
         }) = &self.fixed
         {
             if self.optional {
-                "Option<FieldElement>"
+                "Option<Felt>"
             } else {
-                "FieldElement"
+                "Felt"
             }
         } else {
             &self.type_name
@@ -1556,7 +1556,7 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
     Some(match type_name {
         "ADDRESS" | "STORAGE_KEY" | "TXN_HASH" | "FELT" | "BLOCK_HASH" | "CHAIN_ID"
         | "PROTOCOL_VERSION" => RustFieldType {
-            type_name: String::from("FieldElement"),
+            type_name: String::from("Felt"),
             serializer: Some(SerializerOverride::SerdeAs(String::from("UfeHex"))),
         },
         "ETH_ADDRESS" => RustFieldType {
@@ -1576,7 +1576,7 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             serializer: Some(SerializerOverride::SerdeAs(String::from("NumAsHex"))),
         },
         "SIGNATURE" => RustFieldType {
-            type_name: String::from("Vec<FieldElement>"),
+            type_name: String::from("Vec<Felt>"),
             serializer: Some(SerializerOverride::SerdeAs(String::from("Vec<UfeHex>"))),
         },
         "CONTRACT_ABI" => RustFieldType {
