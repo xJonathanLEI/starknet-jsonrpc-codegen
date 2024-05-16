@@ -181,9 +181,9 @@ impl Generate {
         println!("use super::{{serde_impls::NumAsHex, *}};");
         println!();
 
-        println!("#[cfg(all(not(no_rc), not(no_sync), target_has_atomic = \"ptr\"))]");
+        println!("#[cfg(target_has_atomic = \"ptr\")]");
         println!("pub type OwnedPtr<T> = alloc::sync::Arc<T>;");
-        println!("#[cfg(not(all(not(no_rc), not(no_sync), target_has_atomic = \"ptr\")))]");
+        println!("#[cfg(not(target_has_atomic = \"ptr\"))]");
         println!("pub type OwnedPtr<T> = alloc::boxed::Box<T>;");
         println!();
 
