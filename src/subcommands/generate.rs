@@ -154,6 +154,9 @@ impl Generate {
             println!();
         }
 
+        println!("#![allow(clippy::doc_markdown)]");
+        println!("#![allow(clippy::missing_const_for_fn)]");
+        println!();
         println!("use alloc::{{format, string::*, vec::*}};");
         println!();
 
