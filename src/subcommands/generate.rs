@@ -154,6 +154,7 @@ impl Generate {
             println!();
         }
 
+        println!("#![allow(missing_docs)]");
         println!("#![allow(clippy::doc_markdown)]");
         println!("#![allow(clippy::missing_const_for_fn)]");
         println!();
