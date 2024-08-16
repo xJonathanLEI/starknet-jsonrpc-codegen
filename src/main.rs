@@ -322,5 +322,5 @@ fn main() {
         Subcommands::Print(cmd) => cmd.run(&profiles),
     };
 
-    result.expect("Error running commmand");
+    result.expect("Error running command");
 }
