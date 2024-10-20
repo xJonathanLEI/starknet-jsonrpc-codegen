@@ -391,10 +391,9 @@ impl RustStruct {
 
     fn render_impl_array_serialize_stdout_inner(&self, name: &str, is_ref_type: bool) {
         println!(
-            "impl{} Serialize for {}{} {{",
-            if is_ref_type { "<'a>" } else { "" },
+            "impl Serialize for {}{} {{",
             name,
-            if is_ref_type { "Ref<'a>" } else { "" },
+            if is_ref_type { "Ref<'_>" } else { "" },
         );
         println!(
             "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
