@@ -809,15 +809,29 @@ impl RustEnum {
             println!("        match self {{");
 
             for variant in self.variants.iter() {
-                println!(
+                let error_text = variant
+                    .error_text
+                    .as_ref()
+                    .expect("error message to be present for errors");
+
+                let variant_handler = format!(
                     "            Self::{}{} => \"{}\",",
                     variant.name,
                     if variant.wraps.is_some() { "(_)" } else { "" },
-                    variant
-                        .error_text
-                        .as_ref()
-                        .expect("error message to be present for errors")
+                    error_text
                 );
+
+                if variant_handler.len() <= MAX_LINE_LENGTH {
+                    println!("{}", variant_handler);
+                } else {
+                    println!(
+                        "            Self::{}{} => {{",
+                        variant.name,
+                        if variant.wraps.is_some() { "(_)" } else { "" }
+                    );
+                    println!("                \"{}\"", error_text);
+                    println!("            }}");
+                }
             }
 
             println!("        }}");
