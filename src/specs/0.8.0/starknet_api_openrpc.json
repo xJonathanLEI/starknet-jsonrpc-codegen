@@ -895,19 +895,7 @@
           "schema": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "contract_address": {
-                  "$ref": "#/components/schemas/ADDRESS"
-                },
-                "storage_keys": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FELT"
-                  }
-                }
-              },
-              "required": ["contract_address", "storage_keys"]
+              "$ref": "#/components/schemas/CONTRACT_STORAGE_KEYS"
             }
           }
         }
@@ -4038,6 +4026,21 @@
             "type": "string"
           }
         ]
+      },
+      "CONTRACT_STORAGE_KEYS": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "$ref": "#/components/schemas/ADDRESS"
+          },
+          "storage_keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FELT"
+            }
+          }
+        },
+        "required": ["contract_address", "storage_keys"]
       }
     },
     "errors": {
