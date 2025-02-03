@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.7.1",
+    "version": "0.8.0-rc.0",
     "title": "Starknet Node API",
     "license": {}
   },
@@ -250,7 +250,7 @@
     },
     {
       "name": "starknet_getMessagesStatus",
-      "summary": "Given an l1 tx hash, returns the associated l1_handler tx hashes and statuses for all L1 -> L2 messages sent by the l1 ransaction, ordered by the l1 tx sending order",
+      "summary": "Given an l1 tx hash, returns the associated l1_handler tx hashes and statuses for all L1 -> L2 messages sent by the l1 transaction, ordered by the l1 tx sending order",
       "paramStructure": "by-name",
       "params": [
         {
@@ -635,7 +635,7 @@
         "schema": {
           "title": "Estimation",
           "type": "array",
-          "description": "a sequence of fee estimatione where the i'th estimate corresponds to the i'th transaction",
+          "description": "a sequence of fee estimation where the i'th estimate corresponds to the i'th transaction",
           "items": {
             "$ref": "#/components/schemas/FEE_ESTIMATE"
           }
@@ -853,8 +853,17 @@
     },
     {
       "name": "starknet_getStorageProof",
-      "summary": "get merkle paths in one of the state tries: global state, classes, individual contract",
+      "summary": "Get merkle paths in one of the state tries: global state, classes, individual contract. A single request can query for any mix of the three types of storage proofs (classes, contracts, and storage).",
       "params": [
+        {
+          "name": "block_id",
+          "description": "The hash of the requested block, or number (height) of the requested block, or a block tag",
+          "required": true,
+          "schema": {
+            "title": "Block id",
+            "$ref": "#/components/schemas/BLOCK_ID"
+          }
+        },
         {
           "name": "class_hashes",
           "description": "a list of the class hashes for which we want to prove membership in the classes trie",
@@ -905,7 +914,7 @@
       ],
       "result": {
         "name": "result",
-        "description": "The contract's nonce at the requested state",
+        "description": "The requested storage proofs. Note that if a requested leaf has the default value, the path to it may end in an edge node whose path is not a prefix of the requested leaf, thus effectively proving non-membership",
         "schema": {
           "type": "object",
           "properties": {
@@ -913,22 +922,74 @@
               "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
             },
             "contracts_proof": {
-              "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
+              "type": "object",
+              "properties": {
+                "nodes": {
+                  "description": "The nodes in the union of the paths from the contracts tree root to the requested leaves",
+                  "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
+                },
+                "contract_leaves_data": {
+                  "type": "array",
+                  "items": {
+                    "description": "The nonce and class hash for each requested contract address, in the order in which they appear in the request. These values are needed to construct the associated leaf node",
+                    "type": "object",
+                    "properties": {
+                      "nonce": {
+                        "$ref": "#/components/schemas/FELT"
+                      },
+                      "class_hash": {
+                        "$ref": "#/components/schemas/FELT"
+                      }
+                    },
+                    "required": ["nonce", "class_hash"]
+                  }
+                }
+              },
+              "required": ["nodes", "contract_leaves_data"]
             },
             "contracts_storage_proofs": {
               "type": "array",
               "items": {
                 "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
               }
+            },
+            "global_roots": {
+              "type": "object",
+              "properties": {
+                "contracts_tree_root": {
+                  "$ref": "#/components/schemas/FELT"
+                },
+                "classes_tree_root": {
+                  "$ref": "#/components/schemas/FELT"
+                },
+                "block_hash": {
+                  "description": "the associated block hash (needed in case the caller used a block tag for the block_id parameter)",
+                  "$ref": "#/components/schemas/FELT"
+                }
+              },
+              "required": [
+                "contracts_tree_root",
+                "classes_tree_root",
+                "block_hash"
+              ]
             }
           },
           "required": [
             "classes_proof",
             "contracts_proof",
-            "contracts_storage_proofs"
+            "contracts_storage_proofs",
+            "global_roots"
           ]
         }
-      }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+        },
+        {
+          "$ref": "#/components/errors/STORAGE_PROOF_NOT_SUPPORTED"
+        }
+      ]
     }
   ],
   "components": {
@@ -1574,6 +1635,11 @@
             "description": "The price of l1 gas in the block",
             "$ref": "#/components/schemas/RESOURCE_PRICE"
           },
+          "l2_gas_price": {
+            "title": "L2 gas price",
+            "description": "The price of l2 gas in the block",
+            "$ref": "#/components/schemas/RESOURCE_PRICE"
+          },
           "l1_data_gas_price": {
             "title": "L1 data gas price",
             "description": "The price of l1 data gas in the block",
@@ -1595,6 +1661,7 @@
           "timestamp",
           "sequencer_address",
           "l1_gas_price",
+          "l2_gas_price",
           "l1_data_gas_price",
           "l1_da_mode",
           "starknet_version"
@@ -3763,7 +3830,7 @@
       "DA_MODE": {
         "title": "DA mode",
         "type": "string",
-        "description": "Specifies a storage domain in Starknet. Each domain has different gurantess regarding availability",
+        "description": "Specifies a storage domain in Starknet. Each domain has different guarantees regarding availability",
         "enum": ["L1", "L2"]
       },
       "L1_DA_MODE": {
@@ -3779,13 +3846,18 @@
             "description": "The max amount and max price per unit of L1 gas used in this tx",
             "$ref": "#/components/schemas/RESOURCE_BOUNDS"
           },
+          "l1_data_gas": {
+            "title": "L1 Data Gas",
+            "description": "The max amount and max price per unit of L1 blob gas used in this tx",
+            "$ref": "#/components/schemas/RESOURCE_BOUNDS"
+          },
           "l2_gas": {
             "title": "L2 Gas",
             "description": "The max amount and max price per unit of L2 gas used in this tx",
             "$ref": "#/components/schemas/RESOURCE_BOUNDS"
           }
         },
-        "required": ["l1_gas", "l2_gas"]
+        "required": ["l1_gas", "l1_data_gas", "l2_gas"]
       },
       "RESOURCE_BOUNDS": {
         "type": "object",
@@ -3872,35 +3944,53 @@
         "required": ["transaction_index", "execution_error"]
       },
       "MERKLE_NODE": {
+        "title": "MP node",
+        "description": "a node in the Merkle-Patricia tree, can be a leaf, binary node, or an edge node",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/BINARY_NODE"
+          },
+          {
+            "$ref": "#/components/schemas/EDGE_NODE"
+          }
+        ]
+      },
+      "BINARY_NODE": {
         "type": "object",
+        "description": "an internal node whose both children are non-zero",
         "properties": {
-          "path": {
-            "type": "integer"
-          },
-          "length": {
-            "type": "integer"
-          },
-          "value": {
+          "left": {
+            "description": "the hash of the left child",
             "$ref": "#/components/schemas/FELT"
           },
-          "children_hashes": {
-            "type": "object",
-            "description": "the hash of the child nodes, if not present then the node is a leaf",
-            "properties": {
-              "left": {
-                "$ref": "#/components/schemas/FELT"
-              },
-              "right": {
-                "$ref": "#/components/schemas/FELT"
-              }
-            },
-            "required": ["left", "right"]
+          "right": {
+            "description": "the hash of the right child",
+            "$ref": "#/components/schemas/FELT"
           }
         },
-        "required": ["path", "length", "value"]
+        "required": ["left", "right"]
+      },
+      "EDGE_NODE": {
+        "type": "object",
+        "description": "represents a path to the highest non-zero descendant node",
+        "properties": {
+          "path": {
+            "description": "an integer whose binary representation represents the path from the current node to its highest non-zero descendant (bounded by 2^251)",
+            "$ref": "#/components/schemas/NUM_AS_HEX"
+          },
+          "length": {
+            "description": "the length of the path (bounded by 251)",
+            "type": "integer"
+          },
+          "child": {
+            "description": "the hash of the unique non-zero maximal-height descendant node",
+            "$ref": "#/components/schemas/FELT"
+          }
+        },
+        "required": ["path", "length", "child"]
       },
       "NODE_HASH_TO_NODE_MAPPING": {
-        "description": "a node_hash -> node mapping of all the nodes in the union of the paths between the requested leaves and the root (for each node present, its sibling is also present)",
+        "description": "a node_hash -> node mapping of all the nodes in the union of the paths between the requested leaves and the root",
         "type": "array",
         "items": {
           "type": "object",
@@ -3918,11 +4008,14 @@
       "CONTRACT_EXECUTION_ERROR": {
         "description": "structured error that can later be processed by wallets or sdks",
         "title": "contract execution error",
+        "$ref": "#/components/schemas/CONTRACT_EXECUTION_ERROR_INNER"
+      },
+      "CONTRACT_EXECUTION_ERROR_INNER": {
+        "description": "structured error that can later be processed by wallets or sdks",
+        "title": "contract execution error",
         "oneOf": [
           {
             "type": "object",
-            "title": "inner call",
-            "description": "error frame",
             "properties": {
               "contract_address": {
                 "$ref": "#/components/schemas/ADDRESS"
@@ -4001,6 +4094,10 @@
         "data": {
           "$ref": "#/components/schemas/TRANSACTION_EXECUTION_ERROR_DATA"
         }
+      },
+      "STORAGE_PROOF_NOT_SUPPORTED": {
+        "code": 42,
+        "message": "the node doesn't support storage proofs for blocks that are too far in the past"
       }
     }
   }

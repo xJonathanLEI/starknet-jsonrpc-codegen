@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.7.1",
+    "version": "0.8.0-rc.0",
     "title": "Starknet Trace API",
     "license": {}
   },
@@ -30,7 +30,7 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/TXN_HASH_NOT_FOUND"
+          "$ref": "./api/starknet_api_openrpc.json#/components/errors/TXN_HASH_NOT_FOUND"
         },
         {
           "$ref": "#/components/errors/NO_TRACE_AVAILABLE"
@@ -39,7 +39,7 @@
     },
     {
       "name": "starknet_simulateTransactions",
-      "summary": "Simulate a given sequence of transactions on the requested state, and generate the execution traces. Note that some of the transactions may revert, in which case no error is thrown, but revert details can be seen on the returned trace object. . Note that some of the transactions may revert, this will be reflected by the revert_error property in the trace. Other types of failures (e.g. unexpected error or failure in the validation phase) will result in TRANSACTION_EXECUTION_ERROR.",
+      "summary": "Simulate a given sequence of transactions on the requested state, and generate the execution traces. Note that some of the transactions may revert, in which case no error is thrown, but revert details can be seen on the returned trace object. Note that some of the transactions may revert, this will be reflected by the revert_error property in the trace. Other types of failures (e.g. unexpected error or failure in the validation phase) will result in TRANSACTION_EXECUTION_ERROR.",
       "params": [
         {
           "name": "block_id",
@@ -75,7 +75,7 @@
       ],
       "result": {
         "name": "simulated_transactions",
-        "description": "The execution trace and consuemd resources of the required transactions",
+        "description": "The execution trace and consumed resources of the required transactions",
         "schema": {
           "type": "array",
           "items": {
@@ -85,10 +85,10 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+          "$ref": "./api/starknet_api_openrpc.json#/components/errors/BLOCK_NOT_FOUND"
         },
         {
-          "$ref": "#/components/errors/TRANSACTION_EXECUTION_ERROR"
+          "$ref": "./api/starknet_api_openrpc.json#/components/errors/TRANSACTION_EXECUTION_ERROR"
         }
       ]
     },
@@ -118,7 +118,7 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+          "$ref": "./api/starknet_api_openrpc.json#/components/errors/BLOCK_NOT_FOUND"
         }
       ]
     }
@@ -360,9 +360,9 @@
                 }
               },
               "execution_resources": {
-                "title": "Computation resources",
-                "description": "Resources consumed by the internal call. This is named execution_resources for legacy reasons",
-                "$ref": "#/components/schemas/COMPUTATION_RESOURCES"
+                "title": "Execution resources",
+                "description": "Resources consumed by the internal call",
+                "$ref": "#/components/schemas/INNER_CALL_EXECUTION_RESOURCES"
               }
             },
             "required": [
@@ -427,6 +427,24 @@
           }
         ]
       },
+      "INNER_CALL_EXECUTION_RESOURCES": {
+        "type": "object",
+        "title": "Execution resources",
+        "description": "the resources consumed by an inner call (does not account for state diffs since data is squashed across the transaction)",
+        "properties": {
+          "l1_gas": {
+            "title": "L1Gas",
+            "description": "l1 gas consumed by this transaction, used for l2-->l1 messages and state updates if blobs are not used",
+            "type": "integer"
+          },
+          "l2_gas": {
+            "title": "L2Gas",
+            "description": "l2 gas consumed by this transaction, used for computation and calldata",
+            "type": "integer"
+          }
+        },
+        "required": ["l1_gas", "l2_gas"]
+      },
       "FELT": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FELT"
       },
@@ -451,9 +469,6 @@
       "STATE_DIFF": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/STATE_DIFF"
       },
-      "COMPUTATION_RESOURCES": {
-        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/COMPUTATION_RESOURCES"
-      },
       "EXECUTION_RESOURCES": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EXECUTION_RESOURCES"
       },
@@ -475,15 +490,6 @@
         "data": {
           "$ref": "#/components/schemas/NO_TRACE_AVAILABLE_ERROR_DATA"
         }
-      },
-      "TXN_HASH_NOT_FOUND": {
-        "$ref": "./api/starknet_api_openrpc.json#/components/errors/TXN_HASH_NOT_FOUND"
-      },
-      "BLOCK_NOT_FOUND": {
-        "$ref": "./api/starknet_api_openrpc.json#/components/errors/BLOCK_NOT_FOUND"
-      },
-      "TRANSACTION_EXECUTION_ERROR": {
-        "$ref": "./api/starknet_api_openrpc.json#/components/errors/TRANSACTION_EXECUTION_ERROR"
       }
     }
   }
