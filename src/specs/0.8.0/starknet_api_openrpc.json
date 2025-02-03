@@ -3996,29 +3996,9 @@
       "CONTRACT_EXECUTION_ERROR": {
         "description": "structured error that can later be processed by wallets or sdks",
         "title": "contract execution error",
-        "$ref": "#/components/schemas/CONTRACT_EXECUTION_ERROR_INNER"
-      },
-      "CONTRACT_EXECUTION_ERROR_INNER": {
-        "description": "structured error that can later be processed by wallets or sdks",
-        "title": "contract execution error",
         "oneOf": [
           {
-            "type": "object",
-            "properties": {
-              "contract_address": {
-                "$ref": "#/components/schemas/ADDRESS"
-              },
-              "class_hash": {
-                "$ref": "#/components/schemas/FELT"
-              },
-              "selector": {
-                "$ref": "#/components/schemas/FELT"
-              },
-              "error": {
-                "$ref": "#/components/schemas/CONTRACT_EXECUTION_ERROR"
-              }
-            },
-            "required": ["contract_address", "class_hash", "selector", "error"]
+            "$ref": "#/components/schemas/INNER_CONTRACT_EXECUTION_ERROR"
           },
           {
             "title": "error message",
@@ -4026,6 +4006,24 @@
             "type": "string"
           }
         ]
+      },
+      "INNER_CONTRACT_EXECUTION_ERROR": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "$ref": "#/components/schemas/ADDRESS"
+          },
+          "class_hash": {
+            "$ref": "#/components/schemas/FELT"
+          },
+          "selector": {
+            "$ref": "#/components/schemas/FELT"
+          },
+          "error": {
+            "$ref": "#/components/schemas/CONTRACT_EXECUTION_ERROR"
+          }
+        },
+        "required": ["contract_address", "class_hash", "selector", "error"]
       },
       "CONTRACT_STORAGE_KEYS": {
         "type": "object",
