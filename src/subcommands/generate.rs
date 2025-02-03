@@ -179,6 +179,7 @@ impl Generate {
         println!("use alloc::{{format, string::*, vec::*}};");
         println!();
 
+        println!("use indexmap::IndexMap;");
         println!("use serde::{{Deserialize, Deserializer, Serialize, Serializer}};");
         println!("use serde_with::serde_as;");
 
@@ -200,13 +201,21 @@ impl Generate {
             println!();
         }
 
-        println!("use super::{{serde_impls::NumAsHex, *}};");
+        println!("use super::{{");
+        println!("    serde_impls::{{MerkleNodeMap, NumAsHex, OwnedContractExecutionError}},");
+        println!("    *,");
+        println!("}};");
         println!();
 
         println!("#[cfg(target_has_atomic = \"ptr\")]");
         println!("pub type OwnedPtr<T> = alloc::sync::Arc<T>;");
         println!("#[cfg(not(target_has_atomic = \"ptr\"))]");
         println!("pub type OwnedPtr<T> = alloc::boxed::Box<T>;");
+        println!();
+        println!("#[cfg(feature = \"std\")]");
+        println!("type RandomState = std::hash::RandomState;");
+        println!("#[cfg(not(feature = \"std\"))]");
+        println!("type RandomState = foldhash::fast::RandomState;");
         println!();
 
         println!("const QUERY_VERSION_OFFSET: Felt = Felt::from_raw([");
@@ -999,6 +1008,11 @@ impl RustField {
                         format!("{leading_spaces}#[serde_as(as = \"{serializer}\")]")
                     }
                 });
+            } else if self.arc_wrap && !no_arc_wrapping && !is_ref {
+                lines.push(format!(
+                    "{leading_spaces}#[serde_as(as = \"Owned{}\")]",
+                    self.type_name
+                ));
             }
         }
 
@@ -1621,6 +1635,16 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             type_name: String::from("Vec<Felt>"),
             serializer: Some(SerializerOverride::SerdeAs(String::from("Vec<UfeHex>"))),
         },
+        "EVENT_KEYS" => RustFieldType {
+            type_name: String::from("Vec<Vec<Felt>>"),
+            serializer: Some(SerializerOverride::SerdeAs(String::from(
+                "Vec<Vec<UfeHex>>",
+            ))),
+        },
+        "NODE_HASH_TO_NODE_MAPPING" => RustFieldType {
+            type_name: String::from("IndexMap<Felt, MerkleNode, RandomState>"),
+            serializer: Some(SerializerOverride::SerdeAs(String::from("MerkleNodeMap"))),
+        },
         "CONTRACT_ABI" => RustFieldType {
             type_name: String::from("Vec<LegacyContractAbiEntry>"),
             serializer: None,
@@ -1641,7 +1665,7 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
             type_name: String::from("FunctionInvocation"),
             serializer: None,
         },
-        "HASH_256" => RustFieldType {
+        "HASH_256" | "L1_TXN_HASH" => RustFieldType {
             type_name: String::from("Hash256"),
             serializer: None,
         },
