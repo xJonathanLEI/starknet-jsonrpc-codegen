@@ -39,7 +39,7 @@
           "$ref": "#/components/errors/INSUFFICIENT_ACCOUNT_BALANCE"
         },
         {
-          "$ref": "#/components/errors/INSUFFICIENT_MAX_FEE"
+          "$ref": "#/components/errors/INSUFFICIENT_RESOURCES_FOR_VALIDATE"
         },
         {
           "$ref": "#/components/errors/INVALID_TRANSACTION_NONCE"
@@ -107,7 +107,7 @@
           "$ref": "#/components/errors/INSUFFICIENT_ACCOUNT_BALANCE"
         },
         {
-          "$ref": "#/components/errors/INSUFFICIENT_MAX_FEE"
+          "$ref": "#/components/errors/INSUFFICIENT_RESOURCES_FOR_VALIDATE"
         },
         {
           "$ref": "#/components/errors/INVALID_TRANSACTION_NONCE"
@@ -171,7 +171,7 @@
           "$ref": "#/components/errors/INSUFFICIENT_ACCOUNT_BALANCE"
         },
         {
-          "$ref": "#/components/errors/INSUFFICIENT_MAX_FEE"
+          "$ref": "#/components/errors/INSUFFICIENT_RESOURCES_FOR_VALIDATE"
         },
         {
           "$ref": "#/components/errors/INVALID_TRANSACTION_NONCE"
@@ -201,16 +201,16 @@
     "contentDescriptors": {},
     "schemas": {
       "NUM_AS_HEX": {
-        "$ref": "./starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
+        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
       },
       "SIGNATURE": {
-        "$ref": "./starknet_api_openrpc.json#/components/schemas/SIGNATURE"
+        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/SIGNATURE"
       },
       "FELT": {
-        "$ref": "./starknet_api_openrpc.json#/components/schemas/FELT"
+        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FELT"
       },
       "TXN_HASH": {
-        "$ref": "./starknet_api_openrpc.json#/components/schemas/TXN_HASH"
+        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_HASH"
       },
       "BROADCASTED_INVOKE_TXN": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BROADCASTED_INVOKE_TXN"
@@ -222,7 +222,7 @@
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN"
       },
       "FUNCTION_CALL": {
-        "$ref": "./starknet_api_openrpc.json#/components/schemas/FUNCTION_CALL"
+        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FUNCTION_CALL"
       }
     },
     "errors": {
@@ -238,9 +238,9 @@
         "code": 52,
         "message": "Invalid transaction nonce"
       },
-      "INSUFFICIENT_MAX_FEE": {
+      "INSUFFICIENT_RESOURCES_FOR_VALIDATE": {
         "code": 53,
-        "message": "Max fee is smaller than the minimal transaction cost (validation plus fee transfer)"
+        "message": "The transaction's resources don't cover validation or the minimal transaction fee"
       },
       "INSUFFICIENT_ACCOUNT_BALANCE": {
         "code": 54,
