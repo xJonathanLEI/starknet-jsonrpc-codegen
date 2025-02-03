@@ -904,70 +904,7 @@
         "name": "result",
         "description": "The requested storage proofs. Note that if a requested leaf has the default value, the path to it may end in an edge node whose path is not a prefix of the requested leaf, thus effectively proving non-membership",
         "schema": {
-          "type": "object",
-          "properties": {
-            "classes_proof": {
-              "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
-            },
-            "contracts_proof": {
-              "type": "object",
-              "properties": {
-                "nodes": {
-                  "description": "The nodes in the union of the paths from the contracts tree root to the requested leaves",
-                  "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
-                },
-                "contract_leaves_data": {
-                  "type": "array",
-                  "items": {
-                    "description": "The nonce and class hash for each requested contract address, in the order in which they appear in the request. These values are needed to construct the associated leaf node",
-                    "type": "object",
-                    "properties": {
-                      "nonce": {
-                        "$ref": "#/components/schemas/FELT"
-                      },
-                      "class_hash": {
-                        "$ref": "#/components/schemas/FELT"
-                      }
-                    },
-                    "required": ["nonce", "class_hash"]
-                  }
-                }
-              },
-              "required": ["nodes", "contract_leaves_data"]
-            },
-            "contracts_storage_proofs": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
-              }
-            },
-            "global_roots": {
-              "type": "object",
-              "properties": {
-                "contracts_tree_root": {
-                  "$ref": "#/components/schemas/FELT"
-                },
-                "classes_tree_root": {
-                  "$ref": "#/components/schemas/FELT"
-                },
-                "block_hash": {
-                  "description": "the associated block hash (needed in case the caller used a block tag for the block_id parameter)",
-                  "$ref": "#/components/schemas/FELT"
-                }
-              },
-              "required": [
-                "contracts_tree_root",
-                "classes_tree_root",
-                "block_hash"
-              ]
-            }
-          },
-          "required": [
-            "classes_proof",
-            "contracts_proof",
-            "contracts_storage_proofs",
-            "global_roots"
-          ]
+          "$ref": "#/components/errors/STORAGE_PROOF"
         }
       },
       "errors": [
@@ -4039,6 +3976,77 @@
           }
         },
         "required": ["contract_address", "storage_keys"]
+      },
+      "STORAGE_PROOF": {
+        "type": "object",
+        "properties": {
+          "classes_proof": {
+            "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
+          },
+          "contracts_proof": {
+            "$ref": "#/components/schemas/CONTRACTS_PROOF"
+          },
+          "contracts_storage_proofs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
+            }
+          },
+          "global_roots": {
+            "$ref": "#/components/schemas/GLOBAL_ROOTS"
+          }
+        },
+        "required": [
+          "classes_proof",
+          "contracts_proof",
+          "contracts_storage_proofs",
+          "global_roots"
+        ]
+      },
+      "CONTRACTS_PROOF": {
+        "type": "object",
+        "properties": {
+          "nodes": {
+            "description": "The nodes in the union of the paths from the contracts tree root to the requested leaves",
+            "$ref": "#/components/schemas/NODE_HASH_TO_NODE_MAPPING"
+          },
+          "contract_leaves_data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CONTRACT_LEAF_DATA"
+            }
+          }
+        },
+        "required": ["nodes", "contract_leaves_data"]
+      },
+      "CONTRACT_LEAF_DATA": {
+        "description": "The nonce and class hash for each requested contract address, in the order in which they appear in the request. These values are needed to construct the associated leaf node",
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "$ref": "#/components/schemas/FELT"
+          },
+          "class_hash": {
+            "$ref": "#/components/schemas/FELT"
+          }
+        },
+        "required": ["nonce", "class_hash"]
+      },
+      "GLOBAL_ROOTS": {
+        "type": "object",
+        "properties": {
+          "contracts_tree_root": {
+            "$ref": "#/components/schemas/FELT"
+          },
+          "classes_tree_root": {
+            "$ref": "#/components/schemas/FELT"
+          },
+          "block_hash": {
+            "description": "the associated block hash (needed in case the caller used a block tag for the block_id parameter)",
+            "$ref": "#/components/schemas/FELT"
+          }
+        },
+        "required": ["contracts_tree_root", "classes_tree_root", "block_hash"]
       }
     },
     "errors": {
