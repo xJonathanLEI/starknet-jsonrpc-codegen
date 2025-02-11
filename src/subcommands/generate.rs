@@ -43,6 +43,7 @@ struct RustAlias {
 #[derive(Debug, Clone)]
 enum SchemaToRustTypeResult {
     Type(RustTypeKind),
+    #[allow(unused)]
     Alias(RustAliasContent),
 }
 
@@ -1262,9 +1263,21 @@ fn schema_to_rust_type_kind(
     derives: Vec<String>,
 ) -> Result<Option<SchemaToRustTypeResult>> {
     Ok(match entity {
-        Schema::Ref(reference) => Some(SchemaToRustTypeResult::Alias(RustAliasContent {
-            src_name: to_starknet_rs_name(reference.name()),
-        })),
+        Schema::Ref(reference) => {
+            let ref_type_name = reference.name();
+            let ref_type =
+                specs.components.schemas.get(ref_type_name).ok_or_else(|| {
+                    anyhow::anyhow!("Ref target type not found: {}", ref_type_name)
+                })?;
+
+            schema_to_rust_type_kind(
+                specs,
+                ref_type,
+                allow_unknown_fields,
+                flatten_option,
+                derives,
+            )?
+        }
         Schema::OneOf(_) => None,
         Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
             let mut fields = vec![];

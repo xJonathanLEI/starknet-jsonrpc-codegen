@@ -12,10 +12,18 @@
       "MSG_TO_L1",
       "PENDING_COMMON_RECEIPT_PROPERTIES",
       "COMMON_RECEIPT_PROPERTIES",
-      "BROADCASTED_INVOKE_TXN_V1",
-      "BROADCASTED_INVOKE_TXN_V3",
-      "BROADCASTED_DEPLOY_ACCOUNT_TXN_V1",
-      "BROADCASTED_DEPLOY_ACCOUNT_TXN_V3",
+      "INVOKE_TXN_V0_CONTENT",
+      "INVOKE_TXN_V1_CONTENT",
+      "INVOKE_TXN_V3_CONTENT",
+      "L1_HANDLER_TXN_CONTENT",
+      "L1_HANDLER_TXN_CONTENT",
+      "DECLARE_TXN_V0_CONTENT",
+      "DECLARE_TXN_V1_CONTENT",
+      "DECLARE_TXN_V2_CONTENT",
+      "DECLARE_TXN_V3_CONTENT",
+      "DEPLOY_TXN_CONTENT",
+      "DEPLOY_ACCOUNT_TXN_V1_CONTENT",
+      "DEPLOY_ACCOUNT_TXN_V3_CONTENT",
       "BLOCK_BODY_WITH_RECEIPTS"
     ]
   },
@@ -77,6 +85,66 @@
       },
       {
         "name": "DeclareTransactionV3",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"DECLARE\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&3",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "DeclareTransactionV0Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"DECLARE\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&0",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "DeclareTransactionV1Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"DECLARE\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&1",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "DeclareTransactionV2Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"DECLARE\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&2",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "DeclareTransactionV3Content",
         "fields": [
           {
             "name": "type",
@@ -166,6 +234,36 @@
         ]
       },
       {
+        "name": "DeployAccountTransactionV1Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"DEPLOY_ACCOUNT\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&1",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "DeployAccountTransactionV3Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"DEPLOY_ACCOUNT\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&3",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
         "name": "BroadcastedDeployAccountTransactionV1",
         "fields": [
           {
@@ -197,6 +295,16 @@
       },
       {
         "name": "DeployTransaction",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"DEPLOY\"",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "DeployTransactionContent",
         "fields": [
           {
             "name": "type",
@@ -251,6 +359,51 @@
         ]
       },
       {
+        "name": "InvokeTransactionV0Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"INVOKE\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&0",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "InvokeTransactionV1Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"INVOKE\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&1",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "InvokeTransactionV3Content",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"INVOKE\"",
+            "is_query_version": false
+          },
+          {
+            "name": "version",
+            "value": "&3",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
         "name": "BroadcastedInvokeTransactionV1",
         "fields": [
           {
@@ -282,6 +435,16 @@
       },
       {
         "name": "L1HandlerTransaction",
+        "fields": [
+          {
+            "name": "type",
+            "value": "\"L1_HANDLER\"",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "L1HandlerTransactionContent",
         "fields": [
           {
             "name": "type",
