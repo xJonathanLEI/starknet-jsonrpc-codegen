@@ -21,6 +21,7 @@ const MAX_LINE_LENGTH: usize = 100;
 #[derive(Debug, Clone)]
 struct TypeResolutionResult {
     model_types: Vec<RustType>,
+    aliases: Vec<RustAlias>,
     request_response_types: Vec<RustType>,
     not_implemented: Vec<String>,
 }
@@ -33,6 +34,18 @@ struct RustType {
     content: RustTypeKind,
 }
 
+#[derive(Debug, Clone)]
+struct RustAlias {
+    name: String,
+    content: RustAliasContent,
+}
+
+#[derive(Debug, Clone)]
+enum SchemaToRustTypeResult {
+    Type(RustTypeKind),
+    Alias(RustAliasContent),
+}
+
 #[allow(unused)]
 #[derive(Debug, Clone)]
 enum RustTypeKind {
@@ -40,6 +53,11 @@ enum RustTypeKind {
     Enum(RustEnum),
     Wrapper(RustWrapper),
     Unit(RustUnit),
+}
+
+#[derive(Debug, Clone)]
+struct RustAliasContent {
+    src_name: String,
 }
 
 #[derive(Debug, Clone)]
@@ -200,6 +218,14 @@ impl Generate {
         println!();
 
         let mut manual_serde_types = vec![];
+
+        if !result.aliases.is_empty() {
+            for alias in &result.aliases {
+                println!("pub type {} = {};", alias.name, alias.content.src_name);
+            }
+
+            println!();
+        }
 
         for rust_type in result
             .model_types
@@ -1034,6 +1060,7 @@ fn resolve_types(
     additional_derives_types: &AdditionalDerivesOptions,
 ) -> Result<TypeResolutionResult> {
     let mut types = vec![];
+    let mut aliases = vec![];
     let mut req_types: Vec<RustType> = vec![];
     let mut not_implemented_types = vec![];
 
@@ -1066,7 +1093,7 @@ fn resolve_types(
             .find_additional_derives(&rusty_name)
             .unwrap_or_default();
 
-        let mut content = match schema_to_rust_type_kind(
+        let content = match schema_to_rust_type_kind(
             specs,
             entity,
             allow_unknown_field_types.contains(name),
@@ -1082,19 +1109,27 @@ fn resolve_types(
             }
         };
 
-        if let RustTypeKind::Struct(inner) = &mut content {
-            for field in inner.fields.iter_mut() {
-                field.fixed = fixed_fields.find_fixed_field(&rusty_name, &field.name);
-                field.arc_wrap = arc_wrapping.in_field_wrapped(&rusty_name, &field.name);
-            }
-        }
+        match content {
+            SchemaToRustTypeResult::Type(mut content) => {
+                if let RustTypeKind::Struct(inner) = &mut content {
+                    for field in inner.fields.iter_mut() {
+                        field.fixed = fixed_fields.find_fixed_field(&rusty_name, &field.name);
+                        field.arc_wrap = arc_wrapping.in_field_wrapped(&rusty_name, &field.name);
+                    }
+                }
 
-        types.push(RustType {
-            title: title.map(|value| to_starknet_rs_doc(value, true)),
-            description: description.map(|value| to_starknet_rs_doc(value, true)),
-            name: rusty_name,
-            content,
-        });
+                types.push(RustType {
+                    title: title.map(|value| to_starknet_rs_doc(value, true)),
+                    description: description.map(|value| to_starknet_rs_doc(value, true)),
+                    name: rusty_name,
+                    content,
+                });
+            }
+            SchemaToRustTypeResult::Alias(content) => aliases.push(RustAlias {
+                name: rusty_name,
+                content,
+            }),
+        }
     }
 
     types.push(RustType {
@@ -1199,6 +1234,7 @@ fn resolve_types(
 
     Ok(TypeResolutionResult {
         model_types: types,
+        aliases,
         request_response_types: req_types,
         not_implemented: not_implemented_types,
     })
@@ -1210,38 +1246,27 @@ fn schema_to_rust_type_kind(
     allow_unknown_fields: bool,
     flatten_option: &FlattenOption,
     derives: Vec<String>,
-) -> Result<Option<RustTypeKind>> {
+) -> Result<Option<SchemaToRustTypeResult>> {
     Ok(match entity {
-        Schema::Ref(reference) => {
-            let mut fields = vec![];
-            let redirected_schema = specs
-                .components
-                .schemas
-                .get(reference.name())
-                .ok_or_else(|| anyhow::anyhow!(""))?;
-            get_schema_fields(redirected_schema, specs, &mut fields, flatten_option)?;
-            Some(RustTypeKind::Struct(RustStruct {
-                allow_unknown_fields,
-                serde_as_array: false,
-                extra_ref_type: false,
-                fields,
-                derives,
-            }))
-        }
+        Schema::Ref(reference) => Some(SchemaToRustTypeResult::Alias(RustAliasContent {
+            src_name: to_starknet_rs_name(reference.name()),
+        })),
         Schema::OneOf(_) => None,
         Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
             let mut fields = vec![];
             get_schema_fields(entity, specs, &mut fields, flatten_option)?;
-            Some(RustTypeKind::Struct(RustStruct {
-                allow_unknown_fields,
-                serde_as_array: false,
-                extra_ref_type: false,
-                fields,
-                derives,
-            }))
+            Some(SchemaToRustTypeResult::Type(RustTypeKind::Struct(
+                RustStruct {
+                    allow_unknown_fields,
+                    serde_as_array: false,
+                    extra_ref_type: false,
+                    fields,
+                    derives,
+                },
+            )))
         }
         Schema::Primitive(Primitive::String(value)) => match &value.r#enum {
-            Some(variants) => Some(RustTypeKind::Enum(RustEnum {
+            Some(variants) => Some(SchemaToRustTypeResult::Type(RustTypeKind::Enum(RustEnum {
                 is_error: false,
                 variants: variants
                     .iter()
@@ -1254,7 +1279,7 @@ fn schema_to_rust_type_kind(
                     })
                     .collect(),
                 derives,
-            })),
+            }))),
             None => {
                 anyhow::bail!("Unexpected non-enum string type when generating struct/enum");
             }
