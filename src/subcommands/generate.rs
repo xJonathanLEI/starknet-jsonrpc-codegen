@@ -43,7 +43,6 @@ struct RustAlias {
 #[derive(Debug, Clone)]
 enum SchemaToRustTypeResult {
     Type(RustTypeKind),
-    #[allow(unused)]
     Alias(RustAliasContent),
 }
 
@@ -1169,9 +1168,7 @@ fn resolve_types(
                                     type_name: to_starknet_rs_name(value.name()),
                                     serializer: None,
                                 }),
-                                Schema::Primitive(_) => {
-                                    Some(get_rust_type_for_field(err_data, specs)?)
-                                }
+                                Schema::Primitive(_) => Some(get_rust_type_for_field(err_data)?),
                                 Schema::OneOf(_) => anyhow::bail!(
                                     "Anonymous oneOf types should not be used for error data"
                                 ),
@@ -1196,7 +1193,7 @@ fn resolve_types(
         let mut request_fields = vec![];
 
         for param in method.params.iter() {
-            let field_type = get_rust_type_for_field(&param.schema, specs)?;
+            let field_type = get_rust_type_for_field(&param.schema)?;
 
             request_fields.push(RustField {
                 description: param.description.clone(),
@@ -1265,18 +1262,29 @@ fn schema_to_rust_type_kind(
     Ok(match entity {
         Schema::Ref(reference) => {
             let ref_type_name = reference.name();
-            let ref_type =
-                specs.components.schemas.get(ref_type_name).ok_or_else(|| {
+
+            let should_flatten = match flatten_option {
+                FlattenOption::All => true,
+                FlattenOption::Selected(items) => items.contains(&ref_type_name.to_owned()),
+            };
+
+            if should_flatten {
+                let ref_type = specs.components.schemas.get(ref_type_name).ok_or_else(|| {
                     anyhow::anyhow!("Ref target type not found: {}", ref_type_name)
                 })?;
 
-            schema_to_rust_type_kind(
-                specs,
-                ref_type,
-                allow_unknown_fields,
-                flatten_option,
-                derives,
-            )?
+                schema_to_rust_type_kind(
+                    specs,
+                    ref_type,
+                    allow_unknown_fields,
+                    flatten_option,
+                    derives,
+                )?
+            } else {
+                Some(SchemaToRustTypeResult::Alias(RustAliasContent {
+                    src_name: to_starknet_rs_name(ref_type_name),
+                }))
+            }
         }
         Schema::OneOf(_) => None,
         Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
@@ -1498,7 +1506,7 @@ fn get_schema_fields(
                     },
                 };
 
-                let field_type = get_rust_type_for_field(prop_value, specs)?;
+                let field_type = get_rust_type_for_field(prop_value)?;
 
                 let field_name = to_rust_field_name(name);
                 let rename = if name == &field_name {
@@ -1542,29 +1550,20 @@ fn get_schema_fields(
     Ok(())
 }
 
-fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<RustFieldType> {
+fn get_rust_type_for_field(schema: &Schema) -> Result<RustFieldType> {
     match schema {
         Schema::Ref(value) => {
             let ref_type_name = value.name();
-            let ref_type =
-                specs.components.schemas.get(ref_type_name).ok_or_else(|| {
-                    anyhow::anyhow!("Ref target type not found: {}", ref_type_name)
-                })?;
 
             if let Some(type_override) = get_field_type_override(ref_type_name) {
                 // Hard-coded special rules
                 Ok(type_override)
             } else {
-                match ref_type {
-                    Schema::Ref(inner_ref) => {
-                        // Recursively find the real type
-                        get_rust_type_for_field(&Schema::Ref(inner_ref.to_owned()), specs)
-                    }
-                    _ => Ok(RustFieldType {
-                        type_name: to_starknet_rs_name(ref_type_name),
-                        serializer: None,
-                    }),
-                }
+                // TODO: take non-alias refs into account
+                Ok(RustFieldType {
+                    type_name: to_starknet_rs_name(ref_type_name),
+                    serializer: None,
+                })
             }
         }
         Schema::OneOf(_) => {
@@ -1575,7 +1574,7 @@ fn get_rust_type_for_field(schema: &Schema, specs: &Specification) -> Result<Rus
         }
         Schema::Primitive(value) => match value {
             Primitive::Array(value) => {
-                let item_type = get_rust_type_for_field(&value.items, specs)?;
+                let item_type = get_rust_type_for_field(&value.items)?;
                 let serializer = match item_type.serializer {
                     Some(SerializerOverride::Serde(_)) => {
                         todo!("Array wrapper for #[serde(with)] not implemented")
