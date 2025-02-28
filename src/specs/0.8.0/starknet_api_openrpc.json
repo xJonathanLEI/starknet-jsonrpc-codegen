@@ -583,6 +583,9 @@
           "$ref": "#/components/errors/CONTRACT_NOT_FOUND"
         },
         {
+          "$ref": "#/components/errors/ENTRYPOINT_NOT_FOUND"
+        },
+        {
           "$ref": "#/components/errors/CONTRACT_ERROR"
         },
         {
@@ -1185,7 +1188,7 @@
       "u128": {
         "type": "string",
         "title": "u128",
-        "description": "64 bit integers, represented by hex string of length at most 32",
+        "description": "128 bit integers, represented by hex string of length at most 32",
         "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,31})$"
       },
       "CHAIN_ID": {
@@ -2195,159 +2198,15 @@
       },
       "BROADCASTED_INVOKE_TXN": {
         "title": "Broadcasted invoke transaction",
-        "oneOf": [
-          {
-            "title": "Invoke transaction V1",
-            "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN_V1"
-          },
-          {
-            "title": "Invoke transaction V3",
-            "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN_V3"
-          }
-        ]
+        "$ref": "#/components/schemas/BROADCASTED_INVOKE_TXN_V3"
       },
       "BROADCASTED_DEPLOY_ACCOUNT_TXN": {
         "title": "Broadcasted deploy account transaction",
-        "oneOf": [
-          {
-            "title": "Deploy account V1",
-            "$ref": "#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN_V1"
-          },
-          {
-            "title": "Deploy account V3",
-            "$ref": "#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN_V3"
-          }
-        ]
+        "$ref": "#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN_V3"
       },
       "BROADCASTED_DECLARE_TXN": {
         "title": "Broadcasted declare transaction",
-        "oneOf": [
-          {
-            "title": "Broadcasted declare transaction V1",
-            "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V1"
-          },
-          {
-            "title": "Broadcasted declare transaction V2",
-            "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V2"
-          },
-          {
-            "title": "Broadcasted declare transaction V3",
-            "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V3"
-          }
-        ]
-      },
-      "BROADCASTED_DECLARE_TXN_V1": {
-        "title": "Broadcasted declare contract transaction V1",
-        "allOf": [
-          {
-            "type": "object",
-            "title": "Declare txn v1",
-            "properties": {
-              "type": {
-                "title": "Declare",
-                "type": "string",
-                "enum": ["DECLARE"]
-              },
-              "sender_address": {
-                "title": "Sender address",
-                "description": "The address of the account contract sending the declaration transaction",
-                "$ref": "#/components/schemas/ADDRESS"
-              },
-              "max_fee": {
-                "title": "Max fee",
-                "$ref": "#/components/schemas/FELT",
-                "description": "The maximal fee that can be charged for including the transaction"
-              },
-              "version": {
-                "title": "Version",
-                "description": "Version of the transaction scheme",
-                "$ref": "#/components/schemas/NUM_AS_HEX"
-              },
-              "signature": {
-                "title": "Signature",
-                "$ref": "#/components/schemas/SIGNATURE"
-              },
-              "nonce": {
-                "title": "Nonce",
-                "$ref": "#/components/schemas/FELT"
-              },
-              "contract_class": {
-                "title": "Contract class",
-                "description": "The class to be declared",
-                "$ref": "#/components/schemas/DEPRECATED_CONTRACT_CLASS"
-              }
-            },
-            "required": [
-              "type",
-              "sender_address",
-              "max_fee",
-              "version",
-              "signature",
-              "nonce",
-              "contract_class"
-            ]
-          }
-        ]
-      },
-      "BROADCASTED_DECLARE_TXN_V2": {
-        "title": "Broadcasted declare Transaction V2",
-        "description": "Broadcasted declare Contract Transaction V2",
-        "allOf": [
-          {
-            "type": "object",
-            "title": "Declare txn v2",
-            "properties": {
-              "type": {
-                "title": "Declare",
-                "type": "string",
-                "enum": ["DECLARE"]
-              },
-              "sender_address": {
-                "title": "Sender address",
-                "description": "The address of the account contract sending the declaration transaction",
-                "$ref": "#/components/schemas/ADDRESS"
-              },
-              "compiled_class_hash": {
-                "title": "Compiled class hash",
-                "description": "The hash of the Cairo assembly resulting from the Sierra compilation",
-                "$ref": "#/components/schemas/FELT"
-              },
-              "max_fee": {
-                "title": "Max fee",
-                "$ref": "#/components/schemas/FELT",
-                "description": "The maximal fee that can be charged for including the transaction"
-              },
-              "version": {
-                "title": "Version",
-                "description": "Version of the transaction scheme",
-                "$ref": "#/components/schemas/NUM_AS_HEX"
-              },
-              "signature": {
-                "title": "Signature",
-                "$ref": "#/components/schemas/SIGNATURE"
-              },
-              "nonce": {
-                "title": "Nonce",
-                "$ref": "#/components/schemas/FELT"
-              },
-              "contract_class": {
-                "title": "Contract class",
-                "description": "The class to be declared",
-                "$ref": "#/components/schemas/SIERRA_CONTRACT_CLASS"
-              }
-            },
-            "required": [
-              "type",
-              "sender_address",
-              "compiled_class_hash",
-              "max_fee",
-              "version",
-              "signature",
-              "nonce",
-              "contract_class"
-            ]
-          }
-        ]
+        "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V3"
       },
       "BROADCASTED_DECLARE_TXN_V3": {
         "title": "Broadcasted declare Transaction V3",
@@ -2491,9 +2350,6 @@
             "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN_V1_CONTENT"
           }
         ]
-      },
-      "BROADCASTED_DEPLOY_ACCOUNT_TXN_V1": {
-        "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN_V1_CONTENT"
       },
       "DEPLOY_ACCOUNT_TXN_V1_CONTENT": {
         "title": "Deploy account transaction",
@@ -2808,9 +2664,6 @@
             "$ref": "#/components/schemas/INVOKE_TXN_V1_CONTENT"
           }
         ]
-      },
-      "BROADCASTED_INVOKE_TXN_V1": {
-        "$ref": "#/components/schemas/INVOKE_TXN_V1_CONTENT"
       },
       "INVOKE_TXN_V1_CONTENT": {
         "title": "Invoke transaction V1",
@@ -3595,7 +3448,7 @@
           "offset": {
             "title": "Offset",
             "description": "The offset of the entry point in the program",
-            "$ref": "#/components/schemas/NUM_AS_HEX"
+            "type": "integer"
           },
           "selector": {
             "title": "Selector",
@@ -4156,6 +4009,9 @@
           },
           "class_hash": {
             "$ref": "#/components/schemas/FELT"
+          },
+          "storage_root": {
+            "$ref": "#/components/schemas/FELT"
           }
         },
         "required": ["nonce", "class_hash"]
@@ -4185,6 +4041,10 @@
       "CONTRACT_NOT_FOUND": {
         "code": 20,
         "message": "Contract not found"
+      },
+      "ENTRYPOINT_NOT_FOUND": {
+        "code": 21,
+        "message": "Requested entrypoint does not exist in the contract"
       },
       "BLOCK_NOT_FOUND": {
         "code": 24,
