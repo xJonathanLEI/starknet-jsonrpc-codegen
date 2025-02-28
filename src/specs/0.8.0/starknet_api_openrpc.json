@@ -3882,7 +3882,7 @@
         "properties": {
           "path": {
             "description": "an integer whose binary representation represents the path from the current node to its highest non-zero descendant (bounded by 2^251)",
-            "$ref": "#/components/schemas/NUM_AS_HEX"
+            "$ref": "#/components/schemas/FELT"
           },
           "length": {
             "description": "the length of the path (bounded by 251)",
