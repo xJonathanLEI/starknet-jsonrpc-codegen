@@ -129,7 +129,7 @@ impl FromStr for SpecVersion {
             "0.5.1" | "v0.5.1" => Self::V0_5_1,
             "0.6.0" | "v0.6.0" => Self::V0_6_0,
             "0.7.1" | "v0.7.1" => Self::V0_7_1,
-            "0.8.0-rc1" | "v0.8.0-rc1" => Self::V0_8_0,
+            "0.8.0-rc3" | "v0.8.0-rc3" => Self::V0_8_0,
             _ => anyhow::bail!("unknown spec version: {}", s),
         })
     }
@@ -160,7 +160,7 @@ impl ValueEnum for SpecVersion {
             Self::V0_5_1 => Some(PossibleValue::new("0.5.1").alias("v0.5.1")),
             Self::V0_6_0 => Some(PossibleValue::new("0.6.0").alias("v0.6.0")),
             Self::V0_7_1 => Some(PossibleValue::new("0.7.1").alias("v0.7.1")),
-            Self::V0_8_0 => Some(PossibleValue::new("0.8.0-rc1").alias("v0.8.0-rc1")),
+            Self::V0_8_0 => Some(PossibleValue::new("0.8.0-rc3").alias("v0.8.0-rc3")),
         }
     }
 }
