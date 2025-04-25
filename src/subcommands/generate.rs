@@ -365,7 +365,7 @@ impl RustStruct {
                 print_doc(doc, 4);
             }
 
-            for line in field.def_lines(4, derive_serde, false, false) {
+            for line in field.def_lines(4, derive_serde, false, false, false) {
                 println!("{line}")
             }
         }
@@ -380,7 +380,7 @@ impl RustStruct {
             println!("pub struct {name}Ref<'a> {{");
 
             for field in fields.iter().filter(|field| field.fixed.is_none()) {
-                for line in field.def_lines(4, false, true, false) {
+                for line in field.def_lines(4, false, true, false, false) {
                     println!("{line}")
                 }
             }
@@ -442,7 +442,7 @@ impl RustStruct {
             println!("        #[derive(Serialize)]");
             println!("        #[serde(transparent)]");
             println!("        struct Field{}<'a> {{", ind_field);
-            for line in field.def_lines(12, true, true, false).iter() {
+            for line in field.def_lines(12, true, true, false, false).iter() {
                 println!("{line}");
             }
             println!("        }}");
@@ -500,7 +500,7 @@ impl RustStruct {
         println!("        struct Tagged<'a> {{");
 
         for field in self.fields.iter() {
-            for line in field.def_lines(12, true, true, false).iter() {
+            for line in field.def_lines(12, true, true, false, false).iter() {
                 println!("{line}");
             }
         }
@@ -563,10 +563,8 @@ impl RustStruct {
         println!("        #[derive(Deserialize)]");
         println!("        struct AsObject {{");
 
-        for field in self.fields.iter() {
-            for line in field.def_lines(12, true, false, false).iter() {
-                println!("{line}");
-            }
+        for (ind_field, field) in self.fields.iter().enumerate() {
+            println!("            {}: Field{},", field.name, ind_field);
         }
 
         println!("        }}");
@@ -580,7 +578,7 @@ impl RustStruct {
             println!("        #[derive(Deserialize)]");
             println!("        #[serde(transparent)]");
             println!("        struct Field{} {{", ind_field);
-            for line in field.def_lines(12, true, false, false).iter() {
+            for line in field.def_lines(12, true, false, false, true).iter() {
                 println!("{line}");
             }
             println!("        }}");
@@ -610,10 +608,7 @@ impl RustStruct {
         println!("            Ok(Self {{");
 
         for (ind_field, field) in self.fields.iter().enumerate() {
-            println!(
-                "                {}: field{}.{},",
-                field.name, ind_field, field.name
-            );
+            println!("                {}: field{}.value,", field.name, ind_field);
         }
 
         println!("            }})");
@@ -623,7 +618,10 @@ impl RustStruct {
         println!("            Ok(Self {{");
 
         for field in self.fields.iter() {
-            println!("                {}: object.{},", field.name, field.name);
+            println!(
+                "                {}: object.{}.value,",
+                field.name, field.name
+            );
         }
 
         println!("            }})");
@@ -674,8 +672,8 @@ impl RustStruct {
                     serde_flatten: field.serde_flatten,
                     serializer: field.serializer.as_ref().map(|value| value.to_optional()),
                 }
-                .def_lines(12, true, false, true),
-                None => field.def_lines(12, true, false, true),
+                .def_lines(12, true, false, true, false),
+                None => field.def_lines(12, true, false, true, false),
             };
 
             for line in lines.iter() {
@@ -965,6 +963,7 @@ impl RustField {
         serde_attrs: bool,
         is_ref: bool,
         no_arc_wrapping: bool,
+        is_wrapped_field: bool,
     ) -> Vec<String> {
         let mut lines = vec![];
 
@@ -1033,7 +1032,11 @@ impl RustField {
         lines.push(format!(
             "{}pub {}: {},",
             leading_spaces,
-            escape_name(&self.name),
+            if is_wrapped_field {
+                "value"
+            } else {
+                escape_name(&self.name)
+            },
             if is_ref {
                 if type_name == "String" {
                     String::from("&'a str")
