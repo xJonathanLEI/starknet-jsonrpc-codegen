@@ -46,7 +46,6 @@ enum SchemaToRustTypeResult {
     Alias(RustAliasContent),
 }
 
-#[allow(unused)]
 #[derive(Debug, Clone)]
 enum RustTypeKind {
     Struct(RustStruct),
@@ -1393,9 +1392,11 @@ fn schema_to_rust_type_kind(
                     .collect(),
                 derives,
             }))),
-            None => {
-                anyhow::bail!("Unexpected non-enum string type when generating struct/enum");
-            }
+            None => Some(SchemaToRustTypeResult::Type(RustTypeKind::Wrapper(
+                RustWrapper {
+                    type_name: "String".into(),
+                },
+            ))),
         },
         _ => {
             anyhow::bail!("Unexpected schema type when generating struct/enum");
@@ -1406,7 +1407,8 @@ fn schema_to_rust_type_kind(
 /// Finds the list of schemas that are used and only used for flattening inside objects
 fn get_flatten_only_schemas(specs: &Specification, flatten_option: &FlattenOption) -> Vec<String> {
     // We need this for now since we don't search method calls, so we could get false positives
-    const HARD_CODED_NON_FLATTEN_SCHEMAS: [&str; 2] = ["FUNCTION_CALL", "PENDING_STATE_UPDATE"];
+    const HARD_CODED_NON_FLATTEN_SCHEMAS: [&str; 3] =
+        ["FUNCTION_CALL", "PENDING_STATE_UPDATE", "BLOCK_HEADER"];
 
     let mut flatten_fields = HashSet::<String>::new();
     let mut non_flatten_fields = HashSet::<String>::new();
@@ -1761,6 +1763,14 @@ fn get_field_type_override(type_name: &str) -> Option<RustFieldType> {
         "u128" => RustFieldType {
             type_name: String::from("u128"),
             serializer: Some(SerializerOverride::SerdeAs(String::from("NumAsHex"))),
+        },
+        "SUBSCRIPTION_BLOCK_ID" => RustFieldType {
+            type_name: String::from("ConfirmedBlockId"),
+            serializer: None,
+        },
+        "TXN_STATUS_RESULT" => RustFieldType {
+            type_name: String::from("TransactionStatus"),
+            serializer: None,
         },
         _ => return None,
     })

@@ -55,6 +55,7 @@ struct RawSpecs {
     main: &'static str,
     write: &'static str,
     trace: &'static str,
+    ws: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -170,8 +171,27 @@ impl RawSpecs {
         let mut specs: Specification = serde_json::from_str(self.main)?;
         let mut write_specs: Specification = serde_json::from_str(self.write)?;
         let mut trace_specs: Specification = serde_json::from_str(self.trace)?;
+        let mut ws_specs: Specification = match &self.ws {
+            Some(ws) => serde_json::from_str(ws)?,
+            // Pretend spec exists to play nicely with the aggregation code below
+            None => Specification {
+                openrpc: "mock".into(),
+                info: spec::Info {
+                    version: "mock".into(),
+                    title: "mock".into(),
+                    license: spec::Empty {},
+                },
+                servers: vec![],
+                methods: vec![],
+                components: spec::Components {
+                    content_descriptors: spec::Empty {},
+                    schemas: Default::default(),
+                    errors: Default::default(),
+                },
+            },
+        };
 
-        for additional_specs in [&mut write_specs, &mut trace_specs].into_iter() {
+        for additional_specs in [&mut write_specs, &mut trace_specs, &mut ws_specs].into_iter() {
             specs.methods.append(&mut additional_specs.methods);
 
             for (key, value) in additional_specs.components.schemas.iter() {
@@ -255,6 +275,7 @@ fn main() {
                 main: include_str!("./specs/0.1.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.1.0/starknet_write_api.json"),
                 trace: include_str!("./specs/0.1.0/starknet_trace_api_openrpc.json"),
+                ws: None,
             },
             options: serde_json::from_str(include_str!("./profiles/0.1.0.json"))
                 .expect("Unable to parse profile options"),
@@ -265,6 +286,7 @@ fn main() {
                 main: include_str!("./specs/0.2.1/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.2.1/starknet_write_api.json"),
                 trace: include_str!("./specs/0.2.1/starknet_trace_api_openrpc.json"),
+                ws: None,
             },
             options: serde_json::from_str(include_str!("./profiles/0.2.1.json"))
                 .expect("Unable to parse profile options"),
@@ -275,6 +297,7 @@ fn main() {
                 main: include_str!("./specs/0.3.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.3.0/starknet_write_api.json"),
                 trace: include_str!("./specs/0.3.0/starknet_trace_api_openrpc.json"),
+                ws: None,
             },
             options: serde_json::from_str(include_str!("./profiles/0.3.0.json"))
                 .expect("Unable to parse profile options"),
@@ -285,6 +308,7 @@ fn main() {
                 main: include_str!("./specs/0.4.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.4.0/starknet_write_api.json"),
                 trace: include_str!("./specs/0.4.0/starknet_trace_api_openrpc.json"),
+                ws: None,
             },
             options: serde_json::from_str(include_str!("./profiles/0.4.0.json"))
                 .expect("Unable to parse profile options"),
@@ -295,6 +319,7 @@ fn main() {
                 main: include_str!("./specs/0.5.1/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.5.1/starknet_write_api.json"),
                 trace: include_str!("./specs/0.5.1/starknet_trace_api_openrpc.json"),
+                ws: None,
             },
             options: serde_json::from_str(include_str!("./profiles/0.5.1.json"))
                 .expect("Unable to parse profile options"),
@@ -305,6 +330,7 @@ fn main() {
                 main: include_str!("./specs/0.6.0/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.6.0/starknet_write_api.json"),
                 trace: include_str!("./specs/0.6.0/starknet_trace_api_openrpc.json"),
+                ws: None,
             },
             options: serde_json::from_str(include_str!("./profiles/0.6.0.json"))
                 .expect("Unable to parse profile options"),
@@ -315,6 +341,7 @@ fn main() {
                 main: include_str!("./specs/0.7.1/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.7.1/starknet_write_api.json"),
                 trace: include_str!("./specs/0.7.1/starknet_trace_api_openrpc.json"),
+                ws: None,
             },
             options: serde_json::from_str(include_str!("./profiles/0.7.1.json"))
                 .expect("Unable to parse profile options"),
@@ -325,6 +352,7 @@ fn main() {
                 main: include_str!("./specs/0.8.1/starknet_api_openrpc.json"),
                 write: include_str!("./specs/0.8.1/starknet_write_api.json"),
                 trace: include_str!("./specs/0.8.1/starknet_trace_api_openrpc.json"),
+                ws: Some(include_str!("./specs/0.8.1/starknet_ws_api.json")),
             },
             options: serde_json::from_str(include_str!("./profiles/0.8.1.json"))
                 .expect("Unable to parse profile options"),

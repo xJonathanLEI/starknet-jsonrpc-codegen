@@ -29,7 +29,8 @@ pub struct Method {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub param_structure: Option<String>,
     pub params: Vec<Param>,
-    pub result: MethodResult,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<MethodResult>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub errors: Option<Vec<Reference>>,
 }
