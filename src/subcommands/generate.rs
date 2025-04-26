@@ -438,7 +438,15 @@ impl RustStruct {
         println!("        struct AsObject<'a> {{");
 
         for (ind_field, field) in self.fields.iter().enumerate() {
-            println!("            {}: Field{}<'a>,", field.name, ind_field);
+            if field.optional {
+                println!("            #[serde(skip_serializing_if = \"Option::is_none\")]");
+                println!(
+                    "            {}: Option<Field{}<'a>>,",
+                    field.name, ind_field
+                );
+            } else {
+                println!("            {}: Field{}<'a>,", field.name, ind_field);
+            }
         }
 
         println!("        }}");
@@ -463,7 +471,22 @@ impl RustStruct {
         println!("            &AsObject {{");
 
         for (ind_field, field) in self.fields.iter().enumerate() {
-            if field.name.len() + if is_ref_type { 0 } else { 1 } > 6 {
+            if field.optional {
+                if field.name.len() > 15 {
+                    println!("                {}: self", field.name,);
+                    println!("                    .{}", field.name);
+                    println!("                    .as_ref()");
+                    println!(
+                        "                    .map(|f| Field{} {{ value: f }}),",
+                        ind_field
+                    );
+                } else {
+                    println!(
+                        "                {}: self.{}.as_ref().map(|f| Field{} {{ value: f }}),",
+                        field.name, field.name, ind_field,
+                    );
+                }
+            } else if field.name.len() + if is_ref_type { 0 } else { 1 } > 6 {
                 println!("                {}: Field{} {{", field.name, ind_field);
                 println!(
                     "                    value: {}self.{},",
@@ -567,12 +590,16 @@ impl RustStruct {
         println!("impl<'de> Deserialize<'de> for {name} {{");
         println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
 
-        println!("        #[serde_as]");
         println!("        #[derive(Deserialize)]");
         println!("        struct AsObject {{");
 
         for (ind_field, field) in self.fields.iter().enumerate() {
-            println!("            {}: Field{},", field.name, ind_field);
+            if field.optional {
+                println!("            #[serde(skip_serializing_if = \"Option::is_none\")]");
+                println!("            {}: Option<Field{}>,", field.name, ind_field);
+            } else {
+                println!("            {}: Field{},", field.name, ind_field);
+            }
         }
 
         println!("        }}");
@@ -599,16 +626,36 @@ impl RustStruct {
             "        if let Ok(mut elements) = Vec::<serde_json::Value>::deserialize(&temp) {{"
         );
 
-        for (ind_field, _) in self.fields.iter().enumerate().rev() {
-            println!(
-                "            let field{} = serde_json::from_value::<Field{}>(",
-                ind_field, ind_field
-            );
-            println!("                elements");
-            println!("                    .pop()");
-            println!("                    .ok_or_else(|| serde::de::Error::custom(\"invalid sequence length\"))?,");
-            println!("            )");
-            println!("            .map_err(|err| serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err)))?;");
+        if self.fields.iter().any(|field| field.optional) {
+            println!("            let element_count = elements.len();");
+            println!();
+        }
+
+        for (ind_field, field) in self.fields.iter().enumerate().rev() {
+            if field.optional {
+                println!(
+                    "            let field{} = if element_count > {} {{",
+                    ind_field, ind_field
+                );
+                println!("                Some(");
+                println!("                    serde_json::from_value::<Field{}>(elements.pop().unwrap()).map_err(|err| {{", ind_field);
+                println!("                        serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err))");
+                println!("                    }})?,");
+                println!("                )");
+                println!("            }} else {{");
+                println!("                None");
+                println!("            }};");
+            } else {
+                println!(
+                    "            let field{} = serde_json::from_value::<Field{}>(",
+                    ind_field, ind_field
+                );
+                println!("                elements");
+                println!("                    .pop()");
+                println!("                    .ok_or_else(|| serde::de::Error::custom(\"invalid sequence length\"))?,");
+                println!("            )");
+                println!("            .map_err(|err| serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err)))?;");
+            }
         }
 
         println!();
@@ -616,7 +663,14 @@ impl RustStruct {
         println!("            Ok(Self {{");
 
         for (ind_field, field) in self.fields.iter().enumerate() {
-            println!("                {}: field{}.value,", field.name, ind_field);
+            if field.optional {
+                println!(
+                    "                {}: field{}.map(|f| f.value),",
+                    field.name, ind_field
+                );
+            } else {
+                println!("                {}: field{}.value,", field.name, ind_field);
+            }
         }
 
         println!("            }})");
@@ -626,10 +680,17 @@ impl RustStruct {
         println!("            Ok(Self {{");
 
         for field in self.fields.iter() {
-            println!(
-                "                {}: object.{}.value,",
-                field.name, field.name
-            );
+            if field.optional {
+                println!(
+                    "                {}: object.{}.map(|f| f.value),",
+                    field.name, field.name
+                );
+            } else {
+                println!(
+                    "                {}: object.{}.value,",
+                    field.name, field.name
+                );
+            }
         }
 
         println!("            }})");
@@ -978,7 +1039,7 @@ impl RustField {
         let leading_spaces = " ".repeat(leading_spaces);
 
         if serde_attrs {
-            if self.optional {
+            if self.optional && !is_wrapped_field {
                 lines.push(format!(
                     "{leading_spaces}#[serde(skip_serializing_if = \"Option::is_none\")]"
                 ));
@@ -1049,12 +1110,20 @@ impl RustField {
                 if type_name == "String" {
                     String::from("&'a str")
                 } else if type_name.starts_with("Vec<") {
-                    format!("&'a [{}]", &type_name[4..(type_name.len() - 1)])
+                    if self.optional && !is_wrapped_field {
+                        format!("Option<&'a [{}]>", &type_name[4..(type_name.len() - 1)])
+                    } else {
+                        format!("&'a [{}]", &type_name[4..(type_name.len() - 1)])
+                    }
+                } else if self.optional && !is_wrapped_field {
+                    format!("&'a Option<{}>", type_name)
                 } else {
                     format!("&'a {}", type_name)
                 }
             } else if self.arc_wrap && !no_arc_wrapping {
                 format!("OwnedPtr<{}>", type_name)
+            } else if self.optional && !is_wrapped_field {
+                format!("Option<{}>", type_name)
             } else {
                 type_name.to_owned()
             },
@@ -1526,11 +1595,6 @@ fn get_schema_fields(
 
                 // Optional field transformation
                 let field_optional = !value.required.contains(name);
-                let type_name = if field_optional {
-                    format!("Option<{}>", field_type.type_name)
-                } else {
-                    field_type.type_name
-                };
                 let serializer = if field_optional {
                     field_type.serializer.map(|value| value.to_optional())
                 } else {
@@ -1543,7 +1607,7 @@ fn get_schema_fields(
                     optional: field_optional,
                     fixed: None,
                     arc_wrap: false,
-                    type_name,
+                    type_name: field_type.type_name,
                     serde_rename: rename,
                     serde_flatten: false,
                     serializer,
