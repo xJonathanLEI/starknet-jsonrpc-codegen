@@ -5,6 +5,7 @@
     "title": "StarkNet WebSocket RPC API",
     "license": {}
   },
+  "servers": [],
   "methods": [
     {
       "name": "starknet_subscribeNewHeads",
@@ -42,12 +43,14 @@
       "params": [
         {
           "name": "subscription_id",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/SUBSCRIPTION_ID"
           }
         },
         {
           "name": "result",
+          "required": true,
           "schema": {
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_HEADER"
           }
@@ -111,12 +114,14 @@
       "params": [
         {
           "name": "subscription_id",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/SUBSCRIPTION_ID"
           }
         },
         {
           "name": "result",
+          "required": true,
           "schema": {
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EMITTED_EVENT"
           }
@@ -153,12 +158,14 @@
       "params": [
         {
           "name": "subscription_id",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/SUBSCRIPTION_ID"
           }
         },
         {
           "name": "result",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/NEW_TXN_STATUS"
           }
@@ -210,6 +217,7 @@
       "params": [
         {
           "name": "subscription_id",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/SUBSCRIPTION_ID"
           }
@@ -217,15 +225,9 @@
         {
           "name": "result",
           "description": "Either a tranasaction hash or full transaction details, based on subscription",
+          "required": true,
           "schema": {
-            "oneOf": [
-              {
-                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_HASH"
-              },
-              {
-                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_WITH_HASH"
-              }
-            ]
+            "$ref": "#/components/schemas/TXN_OR_HASH"
           }
         }
       ],
@@ -238,12 +240,14 @@
       "params": [
         {
           "name": "subscription_id",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/SUBSCRIPTION_ID"
           }
         },
         {
           "name": "result",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/REORG_DATA"
           }
@@ -279,6 +283,7 @@
     }
   ],
   "components": {
+    "contentDescriptors": {},
     "schemas": {
       "FELT": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FELT"
@@ -296,14 +301,13 @@
           "status": {
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_STATUS_RESULT"
           }
-        }
+        },
+        "required": ["transaction_hash", "status"]
       },
       "SUBSCRIPTION_ID": {
-        "name": "subscription id",
+        "title": "subscription id",
         "description": "An identifier for this subscription stream used to associate events with this subscription.",
-        "schema": {
-          "type": "string"
-        }
+        "type": "string"
       },
       "SUBSCRIPTION_BLOCK_ID": {
         "title": "Subscription Block id",
@@ -344,7 +348,8 @@
         "enum": ["latest"]
       },
       "REORG_DATA": {
-        "name": "Reorg Data",
+        "title": "Reorg Data",
+        "type": "object",
         "description": "Data about reorganized blocks, starting and ending block number and hash",
         "properties": {
           "starting_block_hash": {
@@ -373,6 +378,17 @@
           "starting_block_number",
           "ending_block_hash",
           "ending_block_number"
+        ]
+      },
+      "TXN_OR_HASH": {
+        "description": "Either a tranasaction hash or full transaction details, based on subscription",
+        "oneOf": [
+          {
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_HASH"
+          },
+          {
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN"
+          }
         ]
       }
     },
