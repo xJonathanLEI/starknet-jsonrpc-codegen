@@ -63,7 +63,7 @@ struct RustAliasContent {
 #[derive(Debug, Clone)]
 struct RustStruct {
     allow_unknown_fields: bool,
-    serde_as_array: bool,
+    serde_as_obj: bool,
     extra_ref_type: bool,
     fields: Vec<RustField>,
     derives: Vec<String>,
@@ -83,7 +83,7 @@ struct RustWrapper {
 
 #[derive(Debug, Clone)]
 struct RustUnit {
-    serde_as_array: bool,
+    serde_as_obj: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -396,26 +396,26 @@ impl RustStruct {
     }
 
     pub fn need_custom_serde(&self) -> bool {
-        self.serde_as_array || self.fields.iter().any(|field| field.fixed.is_some())
+        self.serde_as_obj || self.fields.iter().any(|field| field.fixed.is_some())
     }
 
     fn render_impl_serialize_stdout(&self, name: &str) {
-        if self.serde_as_array {
-            self.render_impl_array_serialize_stdout(name);
+        if self.serde_as_obj {
+            self.render_impl_obj_serialize_stdout(name);
         } else {
             self.render_impl_tagged_serialize_stdout(name);
         }
     }
 
     fn render_impl_deserialize_stdout(&self, name: &str) {
-        if self.serde_as_array {
-            self.render_impl_array_deserialize_stdout(name);
+        if self.serde_as_obj {
+            self.render_impl_both_deserialize_stdout(name);
         } else {
             self.render_impl_tagged_deserialize_stdout(name);
         }
     }
 
-    fn render_impl_array_serialize_stdout(&self, name: &str) {
+    fn render_impl_obj_serialize_stdout(&self, name: &str) {
         self.render_impl_array_serialize_stdout_inner(name, false);
 
         if self.extra_ref_type {
@@ -434,6 +434,16 @@ impl RustStruct {
             "    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {{"
         );
 
+        println!("        #[derive(Serialize)]");
+        println!("        struct AsObject<'a> {{");
+
+        for (ind_field, field) in self.fields.iter().enumerate() {
+            println!("            {}: Field{}<'a>,", field.name, ind_field);
+        }
+
+        println!("        }}");
+        println!();
+
         for (ind_field, field) in self.fields.iter().enumerate() {
             if field.serializer.is_some() {
                 println!("        #[serde_as]");
@@ -442,41 +452,39 @@ impl RustStruct {
             println!("        #[derive(Serialize)]");
             println!("        #[serde(transparent)]");
             println!("        struct Field{}<'a> {{", ind_field);
-            for line in field.def_lines(12, true, true, false, false).iter() {
+            for line in field.def_lines(12, true, true, false, true).iter() {
                 println!("{line}");
             }
             println!("        }}");
             println!();
         }
 
-        println!("        use serde::ser::SerializeSeq;");
-        println!();
-        println!("        let mut seq = serializer.serialize_seq(None)?;");
-        println!();
+        println!("        AsObject::serialize(");
+        println!("            &AsObject {{");
 
         for (ind_field, field) in self.fields.iter().enumerate() {
-            if field.name.len() > 5 {
-                println!("        seq.serialize_element(&Field{} {{", ind_field);
+            if field.name.len() + if is_ref_type { 0 } else { 1 } > 6 {
+                println!("                {}: Field{} {{", field.name, ind_field);
                 println!(
-                    "            {}: {}self.{},",
-                    field.name,
+                    "                    value: {}self.{},",
                     if is_ref_type { "" } else { "&" },
                     field.name
                 );
-                println!("        }})?;");
+                println!("                }},");
             } else {
                 println!(
-                    "        seq.serialize_element(&Field{} {{ {}: {}self.{} }})?;",
-                    ind_field,
+                    "                {}: Field{} {{ value: {}self.{} }},",
                     field.name,
+                    ind_field,
                     if is_ref_type { "" } else { "&" },
                     field.name
                 );
             }
         }
 
-        println!();
-        println!("        seq.end()");
+        println!("            }},");
+        println!("            serializer,");
+        println!("        )");
 
         println!("    }}");
         println!("}}");
@@ -555,7 +563,7 @@ impl RustStruct {
         println!("}}");
     }
 
-    fn render_impl_array_deserialize_stdout(&self, name: &str) {
+    fn render_impl_both_deserialize_stdout(&self, name: &str) {
         println!("impl<'de> Deserialize<'de> for {name} {{");
         println!("    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {{");
 
@@ -923,7 +931,7 @@ impl RustUnit {
     }
 
     pub fn need_custom_serde(&self) -> bool {
-        self.serde_as_array
+        self.serde_as_obj
     }
 
     fn render_impl_serialize_stdout(&self, name: &str) {
@@ -1223,13 +1231,11 @@ fn resolve_types(
             description: None,
             name: rusty_name.clone(),
             content: if request_fields.is_empty() {
-                RustTypeKind::Unit(RustUnit {
-                    serde_as_array: true,
-                })
+                RustTypeKind::Unit(RustUnit { serde_as_obj: true })
             } else {
                 RustTypeKind::Struct(RustStruct {
                     allow_unknown_fields: false,
-                    serde_as_array: true,
+                    serde_as_obj: true,
                     extra_ref_type: true,
                     fields: request_fields,
                     derives: additional_derives_types
@@ -1296,7 +1302,7 @@ fn schema_to_rust_type_kind(
             Some(SchemaToRustTypeResult::Type(RustTypeKind::Struct(
                 RustStruct {
                     allow_unknown_fields,
-                    serde_as_array: false,
+                    serde_as_obj: false,
                     extra_ref_type: false,
                     fields,
                     derives,
