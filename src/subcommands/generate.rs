@@ -965,7 +965,7 @@ impl RustEnum {
 
 impl RustWrapper {
     pub fn render_stdout(&self, name: &str) {
-        println!("#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]");
+        println!("#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]");
         println!("pub struct {}(pub {});", name, self.type_name);
     }
 
