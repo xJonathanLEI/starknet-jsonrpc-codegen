@@ -204,7 +204,7 @@ pub enum ErrorType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Error {
-    pub code: i64,
+    pub code: u32,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<Schema>,

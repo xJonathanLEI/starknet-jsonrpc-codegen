@@ -104,6 +104,7 @@ struct RustVariant {
     name: String,
     serde_name: Option<String>,
     error_text: Option<String>,
+    error_code: Option<u32>,
     wraps: Option<RustFieldType>,
 }
 
@@ -906,6 +907,39 @@ impl RustEnum {
 
             println!();
             println!("impl {name} {{");
+            println!("    pub const fn code(&self) -> u32 {{");
+            println!("        match self {{");
+
+            for variant in self.variants.iter() {
+                let error_code = variant
+                    .error_code
+                    .as_ref()
+                    .expect("error code to be present for errors");
+
+                let variant_handler = format!(
+                    "            Self::{}{} => {},",
+                    variant.name,
+                    if variant.wraps.is_some() { "(_)" } else { "" },
+                    error_code
+                );
+
+                if variant_handler.len() <= MAX_LINE_LENGTH {
+                    println!("{}", variant_handler);
+                } else {
+                    println!(
+                        "            Self::{}{} => {{",
+                        variant.name,
+                        if variant.wraps.is_some() { "(_)" } else { "" }
+                    );
+                    println!("                {}", error_code);
+                    println!("            }}");
+                }
+            }
+
+            println!("        }}");
+            println!("    }}");
+            println!();
+
             println!("    pub fn message(&self) -> &'static str {{");
             println!("        match self {{");
 
@@ -1241,6 +1275,7 @@ fn resolve_types(
                         name: to_starknet_rs_name(name),
                         serde_name: None,
                         error_text: Some(err.message.clone()),
+                        error_code: Some(err.code),
                         wraps: match &err.data {
                             Some(err_data) => match err_data {
                                 Schema::Ref(value) => Some(RustFieldType {
@@ -1387,6 +1422,7 @@ fn schema_to_rust_type_kind(
                         name: to_starknet_rs_name(item),
                         serde_name: Some(item.to_owned()),
                         error_text: None,
+                        error_code: None,
                         wraps: None,
                     })
                     .collect(),
