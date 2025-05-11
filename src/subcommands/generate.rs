@@ -894,10 +894,15 @@ impl RustEnum {
 
             for variant in self.variants.iter() {
                 println!(
-                    "            Self::{}{} => write!(f, \"{}\"),",
+                    "            Self::{}{} => write!(f, \"{}{}\"),",
                     variant.name,
-                    if variant.wraps.is_some() { "(_)" } else { "" },
-                    variant.name
+                    if variant.wraps.is_some() { "(e)" } else { "" },
+                    variant.name,
+                    if variant.wraps.is_some() {
+                        ": {e:?}"
+                    } else {
+                        ""
+                    },
                 );
             }
 
