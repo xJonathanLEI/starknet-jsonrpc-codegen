@@ -375,7 +375,7 @@ impl RustStruct {
         if self.extra_ref_type {
             println!();
 
-            print_doc(&format!("Reference version of [{}].", name), 0);
+            print_doc(&format!("Reference version of [{name}]."), 0);
             println!("#[derive(Debug, Clone, PartialEq, Eq)]");
             println!("pub struct {name}Ref<'a> {{");
 
@@ -459,7 +459,7 @@ impl RustStruct {
 
             println!("        #[derive(Serialize)]");
             println!("        #[serde(transparent)]");
-            println!("        struct Field{}<'a> {{", ind_field);
+            println!("        struct Field{ind_field}<'a> {{");
             for line in field.def_lines(12, true, true, false, true).iter() {
                 println!("{line}");
             }
@@ -476,10 +476,7 @@ impl RustStruct {
                     println!("                {}: self", field.name,);
                     println!("                    .{}", field.name);
                     println!("                    .as_ref()");
-                    println!(
-                        "                    .map(|f| Field{} {{ value: f }}),",
-                        ind_field
-                    );
+                    println!("                    .map(|f| Field{ind_field} {{ value: f }}),");
                 } else {
                     println!(
                         "                {}: self.{}.as_ref().map(|f| Field{} {{ value: f }}),",
@@ -612,7 +609,7 @@ impl RustStruct {
 
             println!("        #[derive(Deserialize)]");
             println!("        #[serde(transparent)]");
-            println!("        struct Field{} {{", ind_field);
+            println!("        struct Field{ind_field} {{");
             for line in field.def_lines(12, true, false, false, true).iter() {
                 println!("{line}");
             }
@@ -633,13 +630,10 @@ impl RustStruct {
 
         for (ind_field, field) in self.fields.iter().enumerate().rev() {
             if field.optional {
-                println!(
-                    "            let field{} = if element_count > {} {{",
-                    ind_field, ind_field
-                );
+                println!("            let field{ind_field} = if element_count > {ind_field} {{");
                 println!("                Some(");
-                println!("                    serde_json::from_value::<Field{}>(elements.pop().unwrap()).map_err(|err| {{", ind_field);
-                println!("                        serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err))");
+                println!("                    serde_json::from_value::<Field{ind_field}>(elements.pop().unwrap()).map_err(|err| {{");
+                println!("                        serde::de::Error::custom(format!(\"failed to parse element: {{err}}\"))");
                 println!("                    }})?,");
                 println!("                )");
                 println!("            }} else {{");
@@ -647,14 +641,13 @@ impl RustStruct {
                 println!("            }};");
             } else {
                 println!(
-                    "            let field{} = serde_json::from_value::<Field{}>(",
-                    ind_field, ind_field
+                    "            let field{ind_field} = serde_json::from_value::<Field{ind_field}>("
                 );
                 println!("                elements");
                 println!("                    .pop()");
                 println!("                    .ok_or_else(|| serde::de::Error::custom(\"invalid sequence length\"))?,");
                 println!("            )");
-                println!("            .map_err(|err| serde::de::Error::custom(format!(\"failed to parse element: {{}}\", err)))?;");
+                println!("            .map_err(|err| serde::de::Error::custom(format!(\"failed to parse element: {{err}}\")))?;");
             }
         }
 
@@ -929,14 +922,14 @@ impl RustEnum {
                 );
 
                 if variant_handler.len() <= MAX_LINE_LENGTH {
-                    println!("{}", variant_handler);
+                    println!("{variant_handler}");
                 } else {
                     println!(
                         "            Self::{}{} => {{",
                         variant.name,
                         if variant.wraps.is_some() { "(_)" } else { "" }
                     );
-                    println!("                {}", error_code);
+                    println!("                {error_code}");
                     println!("            }}");
                 }
             }
@@ -962,14 +955,14 @@ impl RustEnum {
                 );
 
                 if variant_handler.len() <= MAX_LINE_LENGTH {
-                    println!("{}", variant_handler);
+                    println!("{variant_handler}");
                 } else {
                     println!(
                         "            Self::{}{} => {{",
                         variant.name,
                         if variant.wraps.is_some() { "(_)" } else { "" }
                     );
-                    println!("                \"{}\"", error_text);
+                    println!("                \"{error_text}\"");
                     println!("            }}");
                 }
             }
@@ -1020,7 +1013,7 @@ impl RustUnit {
         } else {
             println!("#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]");
         }
-        println!("pub struct {};", name);
+        println!("pub struct {name};");
     }
 
     pub fn render_serde_stdout(&self, name: &str) {
@@ -1154,14 +1147,14 @@ impl RustField {
                         format!("&'a [{}]", &type_name[4..(type_name.len() - 1)])
                     }
                 } else if self.optional && !is_wrapped_field {
-                    format!("&'a Option<{}>", type_name)
+                    format!("&'a Option<{type_name}>")
                 } else {
-                    format!("&'a {}", type_name)
+                    format!("&'a {type_name}")
                 }
             } else if self.arc_wrap && !no_arc_wrapping {
-                format!("OwnedPtr<{}>", type_name)
+                format!("OwnedPtr<{type_name}>")
             } else if self.optional && !is_wrapped_field {
-                format!("Option<{}>", type_name)
+                format!("Option<{type_name}>")
             } else {
                 type_name.to_owned()
             },
