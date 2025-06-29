@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.8.1",
+    "version": "0.9.0-rc.0",
     "title": "Starknet Node Write API",
     "license": {}
   },
@@ -43,6 +43,12 @@
         },
         {
           "$ref": "#/components/errors/INVALID_TRANSACTION_NONCE"
+        },
+        {
+          "$ref": "#/components/errors/REPLACEMENT_TRANSACTION_UNDERPRICED"
+        },
+        {
+          "$ref": "#/components/errors/FEE_BELOW_MINIMUM"
         },
         {
           "$ref": "#/components/errors/VALIDATION_FAILURE"
@@ -113,6 +119,12 @@
           "$ref": "#/components/errors/INVALID_TRANSACTION_NONCE"
         },
         {
+          "$ref": "#/components/errors/REPLACEMENT_TRANSACTION_UNDERPRICED"
+        },
+        {
+          "$ref": "#/components/errors/FEE_BELOW_MINIMUM"
+        },
+        {
           "$ref": "#/components/errors/VALIDATION_FAILURE"
         },
         {
@@ -175,6 +187,12 @@
         },
         {
           "$ref": "#/components/errors/INVALID_TRANSACTION_NONCE"
+        },
+        {
+          "$ref": "#/components/errors/REPLACEMENT_TRANSACTION_UNDERPRICED"
+        },
+        {
+          "$ref": "#/components/errors/FEE_BELOW_MINIMUM"
         },
         {
           "$ref": "#/components/errors/VALIDATION_FAILURE"
@@ -286,6 +304,14 @@
         "data": {
           "type": "string"
         }
+      },
+      "REPLACEMENT_TRANSACTION_UNDERPRICED": {
+        "code": 64,
+        "message": "Replacement transaction is underpriced"
+      },
+      "FEE_BELOW_MINIMUM": {
+        "code": 65,
+        "message": "Transaction fee below minimum"
       }
     }
   }
