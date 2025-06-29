@@ -48,6 +48,7 @@ enum SpecVersion {
     V0_6_0,
     V0_7_1,
     V0_8_1,
+    V0_9_0,
 }
 
 #[derive(Debug, Clone)]
@@ -131,6 +132,7 @@ impl FromStr for SpecVersion {
             "0.6.0" | "v0.6.0" => Self::V0_6_0,
             "0.7.1" | "v0.7.1" => Self::V0_7_1,
             "0.8.1" | "v0.8.1" => Self::V0_8_1,
+            "0.9.0-rc.0" | "v0.9.0-rc.0" => Self::V0_9_0,
             _ => anyhow::bail!("unknown spec version: {}", s),
         })
     }
@@ -147,6 +149,7 @@ impl ValueEnum for SpecVersion {
             Self::V0_6_0,
             Self::V0_7_1,
             Self::V0_8_1,
+            Self::V0_9_0,
         ]
     }
 
@@ -162,6 +165,7 @@ impl ValueEnum for SpecVersion {
             Self::V0_6_0 => Some(PossibleValue::new("0.6.0").alias("v0.6.0")),
             Self::V0_7_1 => Some(PossibleValue::new("0.7.1").alias("v0.7.1")),
             Self::V0_8_1 => Some(PossibleValue::new("0.8.1").alias("v0.8.1")),
+            Self::V0_9_0 => Some(PossibleValue::new("0.9.0-rc.0").alias("v0.9.0-rc.0")),
         }
     }
 }
@@ -268,7 +272,7 @@ impl AdditionalDerivesOptions {
 fn main() {
     let cli = Cli::parse();
 
-    let profiles: [GenerationProfile; 8] = [
+    let profiles: [GenerationProfile; 9] = [
         GenerationProfile {
             version: SpecVersion::V0_1_0,
             raw_specs: RawSpecs {
@@ -355,6 +359,17 @@ fn main() {
                 ws: Some(include_str!("./specs/0.8.1/starknet_ws_api.json")),
             },
             options: serde_json::from_str(include_str!("./profiles/0.8.1.json"))
+                .expect("Unable to parse profile options"),
+        },
+        GenerationProfile {
+            version: SpecVersion::V0_9_0,
+            raw_specs: RawSpecs {
+                main: include_str!("./specs/0.9.0/starknet_api_openrpc.json"),
+                write: include_str!("./specs/0.9.0/starknet_write_api.json"),
+                trace: include_str!("./specs/0.9.0/starknet_trace_api_openrpc.json"),
+                ws: Some(include_str!("./specs/0.9.0/starknet_ws_api.json")),
+            },
+            options: serde_json::from_str(include_str!("./profiles/0.9.0.json"))
                 .expect("Unable to parse profile options"),
         },
     ];

@@ -7,10 +7,10 @@
       "BLOCK_BODY_WITH_TXS",
       "BLOCK_BODY_WITH_TX_HASHES",
       "BLOCK_HEADER",
-      "PENDING_BLOCK_HEADER",
+      "PRE_CONFIRMED_BLOCK_HEADER",
       "EVENT_CONTENT",
       "MSG_TO_L1",
-      "PENDING_COMMON_RECEIPT_PROPERTIES",
+      "PRE_CONFIRMED_COMMON_RECEIPT_PROPERTIES",
       "COMMON_RECEIPT_PROPERTIES",
       "INVOKE_TXN_V0_CONTENT",
       "INVOKE_TXN_V1_CONTENT",
@@ -24,7 +24,8 @@
       "DEPLOY_TXN_CONTENT",
       "DEPLOY_ACCOUNT_TXN_V1_CONTENT",
       "DEPLOY_ACCOUNT_TXN_V3_CONTENT",
-      "BLOCK_BODY_WITH_RECEIPTS"
+      "BLOCK_BODY_WITH_RECEIPTS",
+      "FEE_ESTIMATE_COMMON"
     ]
   },
   "ignore_types": [
@@ -623,6 +624,26 @@
           {
             "name": "type",
             "value": "\"L1_HANDLER\"",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "FeeEstimate",
+        "fields": [
+          {
+            "name": "unit",
+            "value": "&PriceUnitFri::Fri",
+            "is_query_version": false
+          }
+        ]
+      },
+      {
+        "name": "MessageFeeEstimate",
+        "fields": [
+          {
+            "name": "unit",
+            "value": "&PriceUnitWei::Wei",
             "is_query_version": false
           }
         ]

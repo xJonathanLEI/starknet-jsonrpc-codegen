@@ -1396,7 +1396,61 @@ fn schema_to_rust_type_kind(
                 }))
             }
         }
-        Schema::OneOf(_) => None,
+        Schema::OneOf(one_of) => {
+            // Special case: treat as plain enum if all its `oneOf` options are just `string` with
+            // enum variants.
+            //
+            // This exception was made to account for `PRICE_UNIT` changes from v0.8.1 to v0.9.0.
+            let string_variants = one_of
+                .one_of
+                .iter()
+                .map(|option| {
+                    let Schema::Ref(option_ref) = option else {
+                        anyhow::bail!("option not reference");
+                    };
+
+                    let ref_type =
+                        specs
+                            .components
+                            .schemas
+                            .get(option_ref.name())
+                            .ok_or_else(|| {
+                                anyhow::anyhow!("Ref target type not found: {}", option_ref.name())
+                            })?;
+
+                    let Schema::Primitive(Primitive::String(option_str)) = ref_type else {
+                        anyhow::bail!("option not pointing to string");
+                    };
+
+                    option_str
+                        .r#enum
+                        .as_ref()
+                        .ok_or_else(|| anyhow::anyhow!("option not pointing to enum"))
+                })
+                .collect::<Result<Vec<&Vec<String>>>>();
+
+            match string_variants {
+                Ok(string_variants) if !string_variants.is_empty() => {
+                    Some(SchemaToRustTypeResult::Type(RustTypeKind::Enum(RustEnum {
+                        is_error: false,
+                        variants: string_variants
+                            .into_iter()
+                            .flatten()
+                            .map(|item| RustVariant {
+                                description: None,
+                                name: to_starknet_rs_name(item),
+                                serde_name: Some(item.to_owned()),
+                                error_text: None,
+                                error_code: None,
+                                wraps: None,
+                            })
+                            .collect(),
+                        derives,
+                    })))
+                }
+                _ => None,
+            }
+        }
         Schema::AllOf(_) | Schema::Primitive(Primitive::Object(_)) => {
             let mut fields = vec![];
             get_schema_fields(entity, specs, &mut fields, flatten_option)?;
