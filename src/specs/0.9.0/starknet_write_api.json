@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.9.0-rc.0",
+    "version": "0.9.0-rc.1",
     "title": "Starknet Node Write API",
     "license": {}
   },
@@ -250,7 +250,10 @@
       },
       "INVALID_TRANSACTION_NONCE": {
         "code": 52,
-        "message": "Invalid transaction nonce"
+        "message": "Invalid transaction nonce",
+        "data": {
+          "type": "string"
+        }
       },
       "INSUFFICIENT_RESOURCES_FOR_VALIDATE": {
         "code": 53,

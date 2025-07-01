@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.9.0-rc.0",
+    "version": "0.9.0-rc.1",
     "title": "Starknet Node API",
     "license": {}
   },
@@ -46,7 +46,7 @@
               "$ref": "#/components/schemas/BLOCK_WITH_TX_HASHES"
             },
             {
-              "title": "Pending block with transaction hashes",
+              "title": "Pre-confirmed block with transaction hashes",
               "$ref": "#/components/schemas/PRE_CONFIRMED_BLOCK_WITH_TX_HASHES"
             }
           ]
@@ -83,7 +83,7 @@
               "$ref": "#/components/schemas/BLOCK_WITH_TXS"
             },
             {
-              "title": "Pending block with transactions",
+              "title": "Pre-confirmed block with transactions",
               "$ref": "#/components/schemas/PRE_CONFIRMED_BLOCK_WITH_TXS"
             }
           ]
@@ -120,7 +120,7 @@
               "$ref": "#/components/schemas/BLOCK_WITH_RECEIPTS"
             },
             {
-              "title": "Pending block with transactions",
+              "title": "Pre-confirmed block with transactions",
               "$ref": "#/components/schemas/PRE_CONFIRMED_BLOCK_WITH_RECEIPTS"
             }
           ]
@@ -157,7 +157,7 @@
               "$ref": "#/components/schemas/STATE_UPDATE"
             },
             {
-              "title": "Pending state update",
+              "title": "Pre-confirmed state update",
               "$ref": "#/components/schemas/PRE_CONFIRMED_STATE_UPDATE"
             }
           ]
@@ -276,15 +276,32 @@
               },
               "finality_status": {
                 "title": "finality status",
-                "$ref": "#/components/schemas/TXN_STATUS"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TXN_STATUS"
+                  },
+                  {
+                    "not": {
+                      "enum": ["RECEIVED", "CANDIDATE", "PRE_CONFIRMED"]
+                    }
+                  }
+                ]
+              },
+              "execution_status": {
+                "title": "execution status",
+                "$ref": "#/components/schemas/TXN_EXECUTION_STATUS"
               },
               "failure_reason": {
                 "title": "failure reason",
-                "description": "the failure reason, only appears if finality_status is REJECTED",
+                "description": "The failure reason. Only appears if `execution_status` is REVERTED",
                 "type": "string"
               }
             },
-            "required": ["transaction_hash", "finality_status"]
+            "required": [
+              "transaction_hash",
+              "finality_status",
+              "execution_status"
+            ]
           }
         }
       },
@@ -1350,8 +1367,8 @@
         "required": ["contract_address", "nonce"]
       },
       "PRE_CONFIRMED_STATE_UPDATE": {
-        "title": "Pending state update",
-        "description": "Pending state update",
+        "title": "Pre-confirmed state update",
+        "description": "Pre-confirmed state update",
         "type": "object",
         "properties": {
           "old_root": {
@@ -1573,13 +1590,13 @@
         ]
       },
       "PRE_CONFIRMED_BLOCK_HEADER": {
-        "title": "Pending block header",
+        "title": "Pre-confirmed block header",
         "type": "object",
         "properties": {
-          "parent_hash": {
-            "title": "Parent hash",
-            "description": "The hash of this block's parent",
-            "$ref": "#/components/schemas/BLOCK_HASH"
+          "block_number": {
+            "description": "The block number of the block that the proposer is currently building. Note that this is a local view of the node, whose accuracy depends on its polling interval length.",
+            "title": "Block number",
+            "$ref": "#/components/schemas/BLOCK_NUMBER"
           },
           "timestamp": {
             "title": "Timestamp",
@@ -1619,7 +1636,7 @@
           }
         },
         "required": [
-          "parent_hash",
+          "block_number",
           "timestamp",
           "sequencer_address",
           "l1_gas_price",
@@ -1629,7 +1646,7 @@
           "starknet_version"
         ],
         "not": {
-          "required": ["block_hash", "block_number", "new_root"]
+          "required": ["block_hash", "new_root"]
         }
       },
       "BLOCK_WITH_TX_HASHES": {
@@ -1708,7 +1725,7 @@
         ]
       },
       "PRE_CONFIRMED_BLOCK_WITH_TX_HASHES": {
-        "title": "Pending block with transaction hashes",
+        "title": "Pre-confirmed block with transaction hashes",
         "description": "The dynamic block being constructed by the sequencer. Note that this object will be deprecated upon decentralization.",
         "allOf": [
           {
@@ -1716,13 +1733,13 @@
             "$ref": "#/components/schemas/BLOCK_BODY_WITH_TX_HASHES"
           },
           {
-            "title": "Pending block header",
+            "title": "Pre-confirmed block header",
             "$ref": "#/components/schemas/PRE_CONFIRMED_BLOCK_HEADER"
           }
         ]
       },
       "PRE_CONFIRMED_BLOCK_WITH_TXS": {
-        "title": "Pending block with transactions",
+        "title": "Pre-confirmed block with transactions",
         "description": "The dynamic block being constructed by the sequencer. Note that this object will be deprecated upon decentralization.",
         "allOf": [
           {
@@ -1730,13 +1747,13 @@
             "$ref": "#/components/schemas/BLOCK_BODY_WITH_TXS"
           },
           {
-            "title": "Pending block header",
+            "title": "Pre-confirmed block header",
             "$ref": "#/components/schemas/PRE_CONFIRMED_BLOCK_HEADER"
           }
         ]
       },
       "PRE_CONFIRMED_BLOCK_WITH_RECEIPTS": {
-        "title": "Pending block with transactions and receipts",
+        "title": "Pre-confirmed block with transactions and receipts",
         "description": "The dynamic block being constructed by the sequencer. Note that this object will be deprecated upon decentralization.",
         "allOf": [
           {
@@ -1744,7 +1761,7 @@
             "$ref": "#/components/schemas/BLOCK_BODY_WITH_RECEIPTS"
           },
           {
-            "title": "Pending block header",
+            "title": "Pre-confirmed block header",
             "$ref": "#/components/schemas/PRE_CONFIRMED_BLOCK_HEADER"
           }
         ]
@@ -3211,12 +3228,12 @@
           "block_hash": {
             "title": "Block hash",
             "$ref": "#/components/schemas/BLOCK_HASH",
-            "description": "If this field is missing, it means the receipt belongs to the pending block"
+            "description": "If this field is missing, it means the receipt belongs to the pre-confirmed block"
           },
           "block_number": {
             "title": "Block number",
             "$ref": "#/components/schemas/BLOCK_NUMBER",
-            "description": "If this field is missing, it means the receipt belongs to the pending block"
+            "description": "If this field is missing, it means the receipt belongs to the pre-confirmed block"
           }
         },
         "required": []
