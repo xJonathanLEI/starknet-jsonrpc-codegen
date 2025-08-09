@@ -132,21 +132,7 @@
           "name": "result",
           "required": true,
           "schema": {
-            "allOf": [
-              {
-                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EMITTED_EVENT"
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "finality_status": {
-                    "description": "Finality status of the transaction",
-                    "$ref": "#/components/schemas/TXN_FINALITY_STATUS"
-                  }
-                },
-                "required": ["finality_status"]
-              }
-            ]
+            "$ref": "#/components/schemas/EMITTED_EVENT_WITH_FINALITY"
           }
         }
       ],
@@ -443,6 +429,23 @@
               "finality_status": {
                 "description": "Finality status of the transaction",
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/L2_TXN_STATUS"
+              }
+            },
+            "required": ["finality_status"]
+          }
+        ]
+      },
+      "EMITTED_EVENT_WITH_FINALITY": {
+        "allOf": [
+          {
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EMITTED_EVENT"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "finality_status": {
+                "description": "Finality status of the transaction",
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_FINALITY_STATUS"
               }
             },
             "required": ["finality_status"]
