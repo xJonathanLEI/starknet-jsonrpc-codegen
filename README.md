@@ -22,7 +22,7 @@ The following versions are supported:
 - `0.6.0`
 - `0.7.1`
 - `0.8.1`
-- `0.9.0-rc.2`
+- `0.9.0-rc.3`
 
 ## License
 

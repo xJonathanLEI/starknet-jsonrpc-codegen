@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc2",
   "info": {
-    "version": "0.9.0-rc.1",
+    "version": "0.9.0-rc.3",
     "title": "Starknet Node API",
     "license": {}
   },
@@ -3220,11 +3220,10 @@
           },
           "block_number": {
             "title": "Block number",
-            "$ref": "#/components/schemas/BLOCK_NUMBER",
-            "description": "If this field is missing, it means the receipt belongs to the pre-confirmed block"
+            "$ref": "#/components/schemas/BLOCK_NUMBER"
           }
         },
-        "required": []
+        "required": ["block_number"]
       },
       "MSG_TO_L1": {
         "title": "Message to L1",
@@ -3315,6 +3314,12 @@
           "ACCEPTED_ON_L1"
         ],
         "description": "The finality status of the transaction, including the case the txn is still in the mempool or failed validation during the block construction phase"
+      },
+      "L2_TXN_STATUS": {
+        "title": "Layer-2 transaction status",
+        "type": "string",
+        "enum": ["RECEIVED", "CANDIDATE", "PRE_CONFIRMED", "ACCEPTED_ON_L2"],
+        "description": "The layer-2-only finality status of the transaction, including the case the txn is still in the mempool or failed validation during the block construction phase"
       },
       "TXN_FINALITY_STATUS": {
         "title": "Finality status",
