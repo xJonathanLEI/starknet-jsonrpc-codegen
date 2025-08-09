@@ -17,7 +17,7 @@
           "summary": "The block to get notifications from, default is latest, limited to 1024 blocks back",
           "required": false,
           "schema": {
-            "$ref": "#/components/schemas/SUBSCRIPTION_BLOCK_ID"
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/CONFIRMED_BLOCK_ID"
           }
         }
       ],
@@ -85,7 +85,7 @@
           "summary": "The block to get notifications from, default is latest, limited to 1024 blocks back",
           "required": false,
           "schema": {
-            "$ref": "#/components/schemas/SUBSCRIPTION_BLOCK_ID"
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/CONFIRMED_BLOCK_ID"
           }
         },
         {
@@ -397,24 +397,6 @@
         "title": "subscription id",
         "description": "An identifier for this subscription stream used to associate events with this subscription.",
         "type": "string"
-      },
-      "SUBSCRIPTION_BLOCK_ID": {
-        "title": "Subscription Block id",
-        "description": "Block hash, number or tag, same as BLOCK_ID, but without 'pre_confirmed' or 'l1_accepted'",
-        "schema": {
-          "title": "Block id",
-          "allOf": [
-            {
-              "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_ID"
-            },
-            {
-              "not": {
-                "type": "string",
-                "enum": ["l1_accepted", "pre_confirmed"]
-              }
-            }
-          ]
-        }
       },
       "REORG_DATA": {
         "title": "Reorg Data",
