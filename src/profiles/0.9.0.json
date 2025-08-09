@@ -39,7 +39,8 @@
     "L1_HANDLER_TXN_RECEIPT",
     "DECLARE_TXN_RECEIPT",
     "DEPLOY_TXN_RECEIPT",
-    "DEPLOY_ACCOUNT_TXN_RECEIPT"
+    "DEPLOY_ACCOUNT_TXN_RECEIPT",
+    "TXN_WITH_L2_STATUS"
   ],
   "fixed_field_types": {
     "fixed_field_types": [
