@@ -253,6 +253,7 @@
       "params": [
         {
           "name": "subscription_id",
+          "required": true,
           "schema": {
             "$ref": "#/components/schemas/SUBSCRIPTION_ID"
           }
@@ -260,6 +261,7 @@
         {
           "name": "result",
           "description": "A transaction receipt",
+          "required": true,
           "schema": {
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_RECEIPT_WITH_BLOCK_INFO"
           }
