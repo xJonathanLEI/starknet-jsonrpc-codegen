@@ -93,8 +93,7 @@
           "summary": "The finality status of the most recent events to include, default is ACCEPTED_ON_L2",
           "required": false,
           "schema": {
-            "type": "string",
-            "enum": ["PRE_CONFIRMED", "ACCEPTED_ON_L2"]
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/L2_TXN_FINALITY_STATUS"
           }
         }
       ],
